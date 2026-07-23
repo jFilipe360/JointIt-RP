@@ -1,0 +1,21 @@
+﻿using Microsoft.AspNetCore.Identity;
+using System.ComponentModel.DataAnnotations;
+
+namespace JoinIt.Web.Models
+{
+    public class ApplicationUser : IdentityUser
+    {
+        [Required]
+        [StringLength(100)]
+        public string Nome { get; set; } = string.Empty;
+
+        [StringLength(300)]
+        public string? FotoPerfil { get; set; }
+
+        public DateTime CriadoEm { get; set; } = DateTime.Now;
+
+        public ICollection<Evento> EventosCriados { get; set; } = new List<Evento>();
+
+        public ICollection<Participante> Participacoes { get; set; } = new List<Participante>();
+    }
+}

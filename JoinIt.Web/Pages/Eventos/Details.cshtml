@@ -1,0 +1,242 @@
+﻿@page
+@using JoinIt.Web.Enums
+@model JoinIt.Web.Pages.Eventos.DetailsModel
+
+@{
+    ViewData["Title"] = "Detalhes do evento";
+
+    string estado = Model.Evento.Estado switch
+    {
+        EstadoEvento.ParaBreve => "Para breve",
+        EstadoEvento.ADecorrer => "A decorrer",
+        EstadoEvento.Terminado => "Terminado",
+        EstadoEvento.Cancelado => "Cancelado",
+        _ => Model.Evento.Estado.ToString()
+    };
+
+    string returnUrl =
+        $"{ViewContext.HttpContext.Request.Path}" +
+        $"{ViewContext.HttpContext.Request.QueryString}";
+}
+
+@if (TempData["MensagemSucesso"] is string mensagemSucesso)
+{
+    <div class="alert alert-success">
+        @mensagemSucesso
+    </div>
+}
+
+@if (TempData["MensagemErro"] is string mensagemErro)
+{
+    <div class="alert alert-danger">
+        @mensagemErro
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>@Model.Evento.Titulo</h1>
+
+        <p class="text-muted mb-0">
+            Criado por @Model.Evento.Criador.Nome
+        </p>
+    </div>
+
+    @if (Model.Evento.IsPrivado)
+    {
+        <span class="badge bg-warning text-dark fs-6">
+            Privado
+        </span>
+    }
+    else
+    {
+        <span class="badge bg-success fs-6">
+            Público
+        </span>
+    }
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h4 class="card-title">Descrição</h4>
+
+                <p class="card-text"
+                   style="white-space: pre-line;">@Model.Evento.Descricao</p>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h4 class="card-title">
+                    Participantes
+                </h4>
+
+                <p>
+                    @Model.NumeroParticipantes /
+                    @Model.Evento.NumMaxParticipantes
+                </p>
+
+                @if (Model.NumeroParticipantes == 0)
+                {
+                    <p class="text-muted mb-0">
+                        Ainda não existem participantes.
+                    </p>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var participante in
+                            Model.Evento.Participantes
+                                .Where(p =>
+                                    p.Estado == EstadoPedido.Aceite)
+                                .OrderBy(p =>
+                                    p.Utilizador.Nome))
+                        {
+                            <li class="list-group-item px-0">
+                                @participante.Utilizador.Nome
+
+                                @if (participante.UtilizadorId ==
+                                     Model.Evento.CriadorId)
+                                {
+                                    <span class="badge bg-primary ms-2">
+                                        Criador
+                                    </span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h4 class="card-title">Informações</h4>
+
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Data</dt>
+                    <dd class="col-sm-7">
+                        @Model.Evento.DataHora.ToString("dd/MM/yyyy")
+                    </dd>
+
+                    <dt class="col-sm-5">Hora</dt>
+                    <dd class="col-sm-7">
+                        @Model.Evento.DataHora.ToString("HH:mm")
+                    </dd>
+
+                    <dt class="col-sm-5">Lotação</dt>
+                    <dd class="col-sm-7">
+                        @Model.NumeroParticipantes /
+                        @Model.Evento.NumMaxParticipantes
+                    </dd>
+
+                    <dt class="col-sm-5">Estado</dt>
+                    <dd class="col-sm-7">
+                        @estado
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h4 class="card-title">Categorias</h4>
+
+                @foreach (var eventoCategoria in
+                    Model.Evento.EventosCategorias
+                        .OrderBy(ec => ec.Categoria.Nome))
+                {
+                    <span class="badge bg-secondary mb-1">
+                        @eventoCategoria.Categoria.Nome
+                    </span>
+                }
+            </div>
+        </div>
+
+        @if (Model.Evento.Latitude.HasValue &&
+             Model.Evento.Longitude.HasValue)
+        {
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h4 class="card-title">Localização</h4>
+
+                    <p class="mb-1">
+                        <strong>Latitude:</strong>
+                        @Model.Evento.Latitude
+                    </p>
+
+                    <p class="mb-0">
+                        <strong>Longitude:</strong>
+                        @Model.Evento.Longitude
+                    </p>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="d-flex flex-wrap gap-2">
+    <a asp-page="./Index"
+       class="btn btn-secondary">
+        Voltar aos eventos
+    </a>
+
+    @if (Model.PodeGerir)
+    {
+        <a asp-page="./Edit"
+           asp-route-id="@Model.Evento.Id"
+           class="btn btn-primary">
+            Editar evento
+        </a>
+
+        <a asp-page="./Delete"
+           asp-route-id="@Model.Evento.Id"
+           class="btn btn-danger">
+            Apagar evento
+        </a>
+    }
+    else if (Model.EstaAParticipar)
+    {
+        <form method="post"
+              asp-page-handler="Sair"
+              asp-route-id="@Model.Evento.Id">
+
+            <button type="submit"
+                    class="btn btn-outline-danger">
+                Sair do evento
+            </button>
+        </form>
+    }
+    else if (Model.PodeParticipar)
+    {
+        <form method="post"
+              asp-page-handler="Participar"
+              asp-route-id="@Model.Evento.Id">
+
+            <button type="submit"
+                    class="btn btn-success">
+                Participar
+            </button>
+        </form>
+    }
+    else if (Model.EventoCheio)
+    {
+        <span class="badge bg-danger align-self-center p-2">
+            Evento cheio
+        </span>
+    }
+    else if (User.Identity?.IsAuthenticated != true &&
+             !Model.Evento.IsPrivado)
+    {
+        <a asp-area="Identity"
+           asp-page="/Account/Login"
+           asp-route-returnUrl="@returnUrl"
+           class="btn btn-outline-primary">
+            Iniciar sessão para participar
+        </a>
+    }
+</div>

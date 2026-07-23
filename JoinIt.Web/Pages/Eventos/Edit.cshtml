@@ -1,0 +1,150 @@
+﻿@page
+@model JoinIt.Web.Pages.Eventos.EditModel
+
+@{
+    ViewData["Title"] = "Editar evento";
+}
+
+<h1>Editar evento</h1>
+
+<div class="row">
+    <div class="col-md-7">
+
+        <form method="post">
+
+            <input asp-for="Input.Id" type="hidden" />
+
+            <div asp-validation-summary="ModelOnly"
+                 class="text-danger mb-3">
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.Titulo"
+                       class="form-label">
+                </label>
+
+                <input asp-for="Input.Titulo"
+                       class="form-control" />
+
+                <span asp-validation-for="Input.Titulo"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.Descricao"
+                       class="form-label">
+                </label>
+
+                <textarea asp-for="Input.Descricao"
+                          class="form-control"
+                          rows="5"></textarea>
+
+                <span asp-validation-for="Input.Descricao"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.DataHora"
+                       class="form-label">
+                </label>
+
+                <input asp-for="Input.DataHora"
+                       type="datetime-local"
+                       class="form-control" />
+
+                <span asp-validation-for="Input.DataHora"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.NumMaxParticipantes"
+                       class="form-label">
+                </label>
+
+                <input asp-for="Input.NumMaxParticipantes"
+                       class="form-control" />
+
+                <span asp-validation-for="Input.NumMaxParticipantes"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Input.CategoriasSelecionadas"
+                       class="form-label">
+                </label>
+
+                <select asp-for="Input.CategoriasSelecionadas"
+                        asp-items="Model.Categorias"
+                        class="form-select"
+                        multiple
+                        size="7">
+                </select>
+
+                <div class="form-text">
+                    Mantém Ctrl pressionado para selecionar várias categorias.
+                </div>
+
+                <span asp-validation-for="Input.CategoriasSelecionadas"
+                      class="text-danger">
+                </span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.Latitude"
+                           class="form-label">
+                    </label>
+
+                    <input asp-for="Input.Latitude"
+                           class="form-control" />
+
+                    <span asp-validation-for="Input.Latitude"
+                          class="text-danger">
+                    </span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.Longitude"
+                           class="form-label">
+                    </label>
+
+                    <input asp-for="Input.Longitude"
+                           class="form-control" />
+
+                    <span asp-validation-for="Input.Longitude"
+                          class="text-danger">
+                    </span>
+                </div>
+            </div>
+
+            <div class="form-check mb-3">
+                <input asp-for="Input.IsPrivado"
+                       class="form-check-input" />
+
+                <label asp-for="Input.IsPrivado"
+                       class="form-check-label">
+                </label>
+            </div>
+
+            <button type="submit"
+                    class="btn btn-primary">
+                Guardar alterações
+            </button>
+
+            <a asp-page="./Details"
+               asp-route-id="@Model.Input.Id"
+               class="btn btn-secondary">
+                Cancelar
+            </a>
+
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

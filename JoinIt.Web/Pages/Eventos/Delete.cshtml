@@ -1,0 +1,79 @@
+﻿@page
+@model JoinIt.Web.Pages.Eventos.DeleteModel
+
+@{
+    ViewData["Title"] = "Apagar evento";
+}
+
+<h1>Apagar evento</h1>
+
+<div class="alert alert-danger">
+    <h4 class="alert-heading">
+        Tens a certeza de que pretendes apagar este evento?
+    </h4>
+
+    <p class="mb-0">
+        Esta ação não pode ser anulada.
+    </p>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <h3 class="card-title">
+            @Model.Evento.Titulo
+        </h3>
+
+        <p class="card-text">
+            @Model.Evento.Descricao
+        </p>
+
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Criador</dt>
+            <dd class="col-sm-9">
+                @Model.Evento.Criador.Nome
+            </dd>
+
+            <dt class="col-sm-3">Data</dt>
+            <dd class="col-sm-9">
+                @Model.Evento.DataHora.ToString("dd/MM/yyyy HH:mm")
+            </dd>
+
+            <dt class="col-sm-3">Lotação</dt>
+            <dd class="col-sm-9">
+                @Model.Evento.NumMaxParticipantes
+            </dd>
+
+            <dt class="col-sm-3">Visibilidade</dt>
+            <dd class="col-sm-9">
+                @(Model.Evento.IsPrivado ? "Privado" : "Público")
+            </dd>
+
+            <dt class="col-sm-3">Categorias</dt>
+            <dd class="col-sm-9">
+                @foreach (var eventoCategoria
+                    in Model.Evento.EventosCategorias
+                        .OrderBy(ec => ec.Categoria.Nome))
+                {
+                    <span class="badge bg-secondary">
+                        @eventoCategoria.Categoria.Nome
+                    </span>
+                }
+            </dd>
+        </dl>
+    </div>
+</div>
+
+<form method="post"
+      asp-route-id="@Model.Evento.Id">
+
+    <button type="submit"
+            class="btn btn-danger">
+        Apagar definitivamente
+    </button>
+
+    <a asp-page="./Details"
+       asp-route-id="@Model.Evento.Id"
+       class="btn btn-secondary">
+        Cancelar
+    </a>
+</form>
