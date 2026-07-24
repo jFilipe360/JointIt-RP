@@ -23,6 +23,8 @@ namespace JoinIt.Web.Data
 
         public DbSet<Amizade> Amizades { get; set; }
 
+        public DbSet<ConviteEvento> ConvitesEvento { get; set; }
+
         protected override void OnModelCreating(
             ModelBuilder builder)
         {
@@ -95,6 +97,33 @@ namespace JoinIt.Web.Data
                 {
                     a.EmissorId,
                     a.RecetorId
+                })
+                .IsUnique();
+
+            builder.Entity<ConviteEvento>()
+                .HasOne(c => c.Evento)
+                .WithMany(e => e.Convites)
+                .HasForeignKey(c => c.EventoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<ConviteEvento>()
+                .HasOne(c => c.Emissor)
+                .WithMany(u => u.ConvitesEnviados)
+                .HasForeignKey(c => c.EmissorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ConviteEvento>()
+                .HasOne(c => c.Recetor)
+                .WithMany(u => u.ConvitesRecebidos)
+                .HasForeignKey(c => c.RecetorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Um utilizador só pode receber um convite por evento.
+            builder.Entity<ConviteEvento>()
+                .HasIndex(c => new
+                {
+                    c.EventoId,
+                    c.RecetorId
                 })
                 .IsUnique();
         }

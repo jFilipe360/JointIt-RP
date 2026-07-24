@@ -21,5 +21,9 @@ namespace JoinIt.Web.Models
         public ICollection<Amizade> PedidosAmizadeEnviados { get; set; } = new List<Amizade>();
 
         public ICollection<Amizade> PedidosAmizadeRecebidos { get; set; } = new List<Amizade>();
+
+        public ICollection<ConviteEvento> ConvitesEnviados { get; set; } = new List<ConviteEvento>();
+
+        public ICollection<ConviteEvento> ConvitesRecebidos { get; set; } = new List<ConviteEvento>();
     }
 }

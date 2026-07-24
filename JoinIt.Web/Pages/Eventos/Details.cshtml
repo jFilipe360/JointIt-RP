@@ -183,6 +183,18 @@
     </div>
 </div>
 
+@if (Model.TemConvitePendente)
+{
+    <div class="alert alert-info">
+        Tens um convite pendente para este evento.
+
+        <a asp-page="/Convites/Index"
+           class="alert-link">
+            Responder ao convite
+        </a>
+    </div>
+}
+
 <div class="d-flex flex-wrap gap-2">
     <a asp-page="./Index"
        class="btn btn-secondary">
@@ -191,6 +203,14 @@
 
     @if (Model.PodeGerir)
     {
+        @if (Model.Evento.IsPrivado)
+        {
+            <a asp-page="./Invite"
+                asp-route-id="@Model.Evento.Id"
+                class="btn btn-success">
+                Convidar amigos
+            </a>
+        }
         <a asp-page="./Edit"
            asp-route-id="@Model.Evento.Id"
            class="btn btn-primary">

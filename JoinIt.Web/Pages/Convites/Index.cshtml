@@ -1,0 +1,180 @@
+﻿@page
+@using JoinIt.Web.Enums
+@model JoinIt.Web.Pages.Invites.IndexModel
+
+@{
+    ViewData["Title"] = "Convites";
+}
+
+<div class="mb-4">
+    <h1>Convites</h1>
+
+    <p class="text-muted">
+        Gere os convites recebidos para eventos privados.
+    </p>
+</div>
+
+@if (TempData["MensagemSucesso"] is string mensagemSucesso)
+{
+    <div class="alert alert-success">
+        @mensagemSucesso
+    </div>
+}
+
+@if (TempData["MensagemErro"] is string mensagemErro)
+{
+    <div class="alert alert-danger">
+        @mensagemErro
+    </div>
+}
+
+<h2 class="mb-3">Convites pendentes</h2>
+
+@if (Model.ConvitesPendentes.Count == 0)
+{
+    <div class="alert alert-info">
+        Não tens convites pendentes.
+    </div>
+}
+else
+{
+    <div class="row mb-5">
+        @foreach (var convite in Model.ConvitesPendentes)
+        {
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            @convite.Evento.Titulo
+                        </h5>
+
+                        <p class="card-text">
+                            @convite.Evento.Descricao
+                        </p>
+
+                        <p class="mb-1">
+                            <strong>Criador:</strong>
+
+                            <a asp-page="/Users/Details"
+                               asp-route-id="@convite.EmissorId">
+                                @convite.Emissor.Nome
+                            </a>
+                        </p>
+
+                        <p class="mb-1">
+                            <strong>Data:</strong>
+                            @convite.Evento.DataHora.ToString(
+                                "dd/MM/yyyy HH:mm")
+                        </p>
+
+                        <p class="mb-3">
+                            <strong>Convite recebido:</strong>
+                            @convite.CriadoEm.ToString(
+                                "dd/MM/yyyy HH:mm")
+                        </p>
+
+                        <span class="badge bg-warning text-dark mb-3">
+                            Pendente
+                        </span>
+
+                        <div class="d-flex flex-wrap gap-2">
+                            <a asp-page="/Eventos/Details"
+                               asp-route-id="@convite.EventoId"
+                               class="btn btn-outline-primary">
+                                Ver evento
+                            </a>
+
+                            <form method="post"
+                                  asp-page-handler="Aceitar"
+                                  asp-route-id="@convite.Id">
+
+                                <button type="submit"
+                                        class="btn btn-success">
+                                    Aceitar
+                                </button>
+                            </form>
+
+                            <form method="post"
+                                  asp-page-handler="Rejeitar"
+                                  asp-route-id="@convite.Id"
+                                  onsubmit="return confirm('Pretendes rejeitar este convite?');">
+
+                                <button type="submit"
+                                        class="btn btn-outline-danger">
+                                    Rejeitar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<h2 class="mb-3">Histórico</h2>
+
+@if (Model.HistoricoConvites.Count == 0)
+{
+    <div class="alert alert-info">
+        Ainda não tens convites respondidos.
+    </div>
+}
+else
+{
+    <div class="row">
+        @foreach (var convite in Model.HistoricoConvites)
+        {
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            @convite.Evento.Titulo
+                        </h5>
+
+                        <p class="mb-1">
+                            <strong>Criador:</strong>
+                            @convite.Emissor.Nome
+                        </p>
+
+                        <p class="mb-1">
+                            <strong>Data:</strong>
+                            @convite.Evento.DataHora.ToString(
+                                "dd/MM/yyyy HH:mm")
+                        </p>
+
+                        @if (convite.RespondidoEm.HasValue)
+                        {
+                            <p class="mb-3">
+                                <strong>Respondido:</strong>
+                                @convite.RespondidoEm.Value.ToString(
+                                    "dd/MM/yyyy HH:mm")
+                            </p>
+                        }
+
+                        @if (convite.Estado == EstadoPedido.Aceite)
+                        {
+                            <span class="badge bg-success mb-3">
+                                Aceite
+                            </span>
+
+                            <div>
+                                <a asp-page="/Eventos/Details"
+                                   asp-route-id="@convite.EventoId"
+                                   class="btn btn-outline-primary">
+                                    Ver evento
+                                </a>
+                            </div>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">
+                                Rejeitado
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

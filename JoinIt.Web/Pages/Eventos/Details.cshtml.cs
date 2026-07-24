@@ -27,6 +27,8 @@ namespace JoinIt.Web.Pages.Eventos
         public EstadoPedido? EstadoParticipacaoAtual { get; private set; }
         public bool EstaAParticipar => EstadoParticipacaoAtual == EstadoPedido.Aceite;
 
+        public bool TemConvitePendente { get; private set; }
+
         public async Task<IActionResult> OnGetAsync(int id)
         {
             var resultado = await CarregarPaginaAsync(id);
@@ -146,11 +148,32 @@ namespace JoinIt.Web.Pages.Eventos
             if (participacao is not null)
             {
                 _context.Participantes.Remove(participacao);
-                await _context.SaveChangesAsync();
             }
+
+            // Ao sair de um evento privado, o convite aceite é removido.
+            if (evento.IsPrivado)
+            {
+                var convite = await _context.ConvitesEvento
+                    .FirstOrDefaultAsync(c =>
+                        c.EventoId == id &&
+                        c.RecetorId == utilizadorId &&
+                        c.Estado == EstadoPedido.Aceite);
+
+                if (convite is not null)
+                {
+                    _context.ConvitesEvento.Remove(convite);
+                }
+            }
+
+            await _context.SaveChangesAsync();
 
             TempData["MensagemSucesso"] =
                 "Saíste do evento.";
+
+            if (evento.IsPrivado)
+            {
+                return RedirectToPage("./MyEvents");
+            }
 
             return RedirectToPage("./Details", new { id });
         }
@@ -174,15 +197,31 @@ namespace JoinIt.Web.Pages.Eventos
             string? utilizadorId = _userManager.GetUserId(User);
 
             // Por enquanto, os eventos privados só são visíveis ao criador.
-            if (evento.IsPrivado &&
-                evento.CriadorId != utilizadorId)
+            if (evento.IsPrivado && evento.CriadorId != utilizadorId)
             {
-                if (User.Identity?.IsAuthenticated != true)
+                if (string.IsNullOrEmpty(utilizadorId))
                 {
                     return Challenge();
                 }
 
-                return Forbid();
+                bool participaNoEvento = evento.Participantes.Any(p =>
+                    p.UtilizadorId == utilizadorId &&
+                    p.Estado == EstadoPedido.Aceite);
+
+                bool temConvite = await _context.ConvitesEvento
+                    .AsNoTracking()
+                    .AnyAsync(c =>
+                        c.EventoId == evento.Id &&
+                        c.RecetorId == utilizadorId &&
+                        (
+                            c.Estado == EstadoPedido.Pendente ||
+                            c.Estado == EstadoPedido.Aceite
+                        ));
+
+                if (!participaNoEvento && !temConvite)
+                {
+                    return Forbid();
+                }
             }
 
             Evento = evento;
@@ -201,6 +240,16 @@ namespace JoinIt.Web.Pages.Eventos
 
             EstadoParticipacaoAtual =
                 participacaoAtual?.Estado;
+
+            if (!string.IsNullOrEmpty(utilizadorId))
+            {
+                TemConvitePendente = await _context.ConvitesEvento
+                    .AsNoTracking()
+                    .AnyAsync(c =>
+                        c.EventoId == evento.Id &&
+                        c.RecetorId == utilizadorId &&
+                        c.Estado == EstadoPedido.Pendente);
+            }
 
             PodeParticipar =
                 User.Identity?.IsAuthenticated == true &&
