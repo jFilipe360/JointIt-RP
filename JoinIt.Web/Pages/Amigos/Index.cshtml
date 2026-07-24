@@ -1,0 +1,239 @@
+﻿@page
+@model JoinIt.Web.Pages.Friends.IndexModel
+
+@{
+    ViewData["Title"] = "Amizades";
+}
+
+<h1>Amizades</h1>
+
+<p class="text-muted mb-4">
+    Gere os teus amigos e pedidos de amizade.
+</p>
+
+@if (TempData["MensagemSucesso"] is string mensagemSucesso)
+{
+    <div class="alert alert-success">
+        @mensagemSucesso
+    </div>
+}
+
+@if (TempData["MensagemErro"] is string mensagemErro)
+{
+    <div class="alert alert-danger">
+        @mensagemErro
+    </div>
+}
+
+<h2 class="mb-3">Pedidos recebidos</h2>
+
+@if (Model.PedidosRecebidos.Count == 0)
+{
+    <div class="alert alert-info">
+        Não tens pedidos de amizade pendentes.
+    </div>
+}
+else
+{
+    <div class="row mb-5">
+        @foreach (var pedido in Model.PedidosRecebidos)
+        {
+            string inicial =
+                string.IsNullOrWhiteSpace(pedido.Emissor.Nome)
+                    ? "?"
+                    : pedido.Emissor.Nome[..1].ToUpper();
+
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+
+                        @if (string.IsNullOrWhiteSpace(
+                            pedido.Emissor.FotoPerfil))
+                        {
+                            <div class="rounded-circle bg-secondary text-white
+                                        d-flex align-items-center justify-content-center
+                                        mx-auto mb-3"
+                                 style="width: 80px;
+                                        height: 80px;
+                                        font-size: 1.8rem;">
+                                @inicial
+                            </div>
+                        }
+                        else
+                        {
+                            <img src="@pedido.Emissor.FotoPerfil"
+                                 alt="Foto de @pedido.Emissor.Nome"
+                                 class="rounded-circle mb-3"
+                                 style="width: 80px;
+                                        height: 80px;
+                                        object-fit: cover;" />
+                        }
+
+                        <h5>@pedido.Emissor.Nome</h5>
+
+                        <p class="text-muted">
+                            Pedido enviado em
+                            @pedido.CriadoEm.ToString("dd/MM/yyyy HH:mm")
+                        </p>
+
+                        <div class="d-flex justify-content-center gap-2">
+                            <form method="post"
+                                  asp-page-handler="Aceitar"
+                                  asp-route-id="@pedido.Id">
+
+                                <button type="submit"
+                                        class="btn btn-success">
+                                    Aceitar
+                                </button>
+                            </form>
+
+                            <form method="post"
+                                  asp-page-handler="Rejeitar"
+                                  asp-route-id="@pedido.Id">
+
+                                <button type="submit"
+                                        class="btn btn-outline-danger">
+                                    Rejeitar
+                                </button>
+                            </form>
+                        </div>
+
+                        <a asp-page="/Users/Details"
+                           asp-route-id="@pedido.EmissorId"
+                           class="btn btn-link mt-2">
+                            Ver perfil
+                        </a>
+
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<h2 class="mb-3">Pedidos enviados</h2>
+
+@if (Model.PedidosEnviados.Count == 0)
+{
+    <div class="alert alert-info">
+        Não tens pedidos enviados pendentes.
+    </div>
+}
+else
+{
+    <div class="row mb-5">
+        @foreach (var pedido in Model.PedidosEnviados)
+        {
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+
+                        <h5 class="card-title">
+                            @pedido.Recetor.Nome
+                        </h5>
+
+                        <p class="text-muted">
+                            Enviado em
+                            @pedido.CriadoEm.ToString("dd/MM/yyyy HH:mm")
+                        </p>
+
+                        <span class="badge bg-warning text-dark mb-3">
+                            Pendente
+                        </span>
+
+                        <div class="d-flex gap-2">
+                            <a asp-page="/Users/Details"
+                               asp-route-id="@pedido.RecetorId"
+                               class="btn btn-outline-primary">
+                                Ver perfil
+                            </a>
+
+                            <form method="post"
+                                  asp-page-handler="Cancelar"
+                                  asp-route-id="@pedido.Id">
+
+                                <button type="submit"
+                                        class="btn btn-outline-danger">
+                                    Cancelar
+                                </button>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<h2 class="mb-3">Os meus amigos</h2>
+
+@if (Model.Amigos.Count == 0)
+{
+    <div class="alert alert-info">
+        Ainda não tens amigos adicionados.
+    </div>
+}
+else
+{
+    <div class="row">
+        @foreach (var amizade in Model.Amigos)
+        {
+            string inicial =
+                string.IsNullOrWhiteSpace(amizade.Utilizador.Nome)
+                    ? "?"
+                    : amizade.Utilizador.Nome[..1].ToUpper();
+
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body text-center">
+
+                        @if (string.IsNullOrWhiteSpace(
+                            amizade.Utilizador.FotoPerfil))
+                        {
+                            <div class="rounded-circle bg-secondary text-white
+                                        d-flex align-items-center justify-content-center
+                                        mx-auto mb-3"
+                                 style="width: 80px;
+                                        height: 80px;
+                                        font-size: 1.8rem;">
+                                @inicial
+                            </div>
+                        }
+                        else
+                        {
+                            <img src="@amizade.Utilizador.FotoPerfil"
+                                 alt="Foto de @amizade.Utilizador.Nome"
+                                 class="rounded-circle mb-3"
+                                 style="width: 80px;
+                                        height: 80px;
+                                        object-fit: cover;" />
+                        }
+
+                        <h5>@amizade.Utilizador.Nome</h5>
+
+                        <div class="d-flex justify-content-center gap-2">
+                            <a asp-page="/Users/Details"
+                               asp-route-id="@amizade.Utilizador.Id"
+                               class="btn btn-outline-primary">
+                                Ver perfil
+                            </a>
+
+                            <form method="post"
+                                  asp-page-handler="Remover"
+                                  asp-route-id="@amizade.AmizadeId"
+                                  onsubmit="return confirm('Tens a certeza de que pretendes remover esta amizade?');">
+
+                                <button type="submit"
+                                        class="btn btn-outline-danger">
+                                    Remover
+                                </button>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

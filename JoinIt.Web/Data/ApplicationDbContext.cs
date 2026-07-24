@@ -21,6 +21,8 @@ namespace JoinIt.Web.Data
 
         public DbSet<Participante> Participantes { get; set; }
 
+        public DbSet<Amizade> Amizades { get; set; }
+
         protected override void OnModelCreating(
             ModelBuilder builder)
         {
@@ -74,6 +76,27 @@ namespace JoinIt.Web.Data
                 .WithMany(u => u.Participacoes)
                 .HasForeignKey(p => p.UtilizadorId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Amizade>()
+                .HasOne(a => a.Emissor)
+                .WithMany(u => u.PedidosAmizadeEnviados)
+                .HasForeignKey(a => a.EmissorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Amizade>()
+                .HasOne(a => a.Recetor)
+                .WithMany(u => u.PedidosAmizadeRecebidos)
+                .HasForeignKey(a => a.RecetorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Impede pedidos repetidos na mesma direção.
+            builder.Entity<Amizade>()
+                .HasIndex(a => new
+                {
+                    a.EmissorId,
+                    a.RecetorId
+                })
+                .IsUnique();
         }
     }
 }

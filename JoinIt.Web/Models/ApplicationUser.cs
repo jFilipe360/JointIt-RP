@@ -17,5 +17,9 @@ namespace JoinIt.Web.Models
         public ICollection<Evento> EventosCriados { get; set; } = new List<Evento>();
 
         public ICollection<Participante> Participacoes { get; set; } = new List<Participante>();
+
+        public ICollection<Amizade> PedidosAmizadeEnviados { get; set; } = new List<Amizade>();
+
+        public ICollection<Amizade> PedidosAmizadeRecebidos { get; set; } = new List<Amizade>();
     }
 }
