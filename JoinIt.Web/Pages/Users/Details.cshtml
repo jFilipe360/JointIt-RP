@@ -1,0 +1,131 @@
+﻿@page
+@using JoinIt.Web.Enums
+@model JoinIt.Web.Pages.Users.DetailsModel
+
+@{
+    ViewData["Title"] = "Perfil";
+
+    string inicial = string.IsNullOrWhiteSpace(Model.Utilizador.Nome)
+        ? "?"
+        : Model.Utilizador.Nome.Substring(0, 1).ToUpper();
+}
+
+<div class="card shadow-sm mb-5">
+    <div class="card-body">
+        <div class="row align-items-center">
+
+            <div class="col-md-auto text-center mb-3 mb-md-0">
+                @if (string.IsNullOrWhiteSpace(
+                    Model.Utilizador.FotoPerfil))
+                {
+                    <div class="rounded-circle bg-secondary text-white
+                        d-flex align-items-center justify-content-center
+                        mx-auto"
+                         style="width: 130px;
+                        height: 130px;
+                        font-size: 3rem;">
+
+                        @inicial
+                    </div>
+                }
+                else
+                {
+                    <img src="@Model.Utilizador.FotoPerfil"
+                         alt="Foto de @Model.Utilizador.Nome"
+                         class="rounded-circle"
+                         style="width: 130px;
+                    height: 130px;
+                    object-fit: cover;" />
+                }
+            </div>
+
+            <div class="col-md">
+                <h1 class="mb-2">
+                    @Model.Utilizador.Nome
+                </h1>
+
+                <p class="text-muted mb-2">
+                    Membro desde
+                    @Model.Utilizador.CriadoEm.ToString("dd/MM/yyyy")
+                </p>
+
+                @if (Model.PerfilProprio)
+                {
+                    <span class="badge bg-primary">
+                        Este é o teu perfil
+                    </span>
+                }
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<h2 class="mb-3">Eventos públicos criados</h2>
+
+@if (Model.EventosPublicos.Count == 0)
+{
+    <div class="alert alert-info">
+        Este utilizador ainda não criou eventos públicos.
+    </div>
+}
+else
+{
+    <div class="row">
+        @foreach (var evento in Model.EventosPublicos)
+        {
+            int numeroParticipantes =
+                evento.Participantes.Count(
+                    p => p.Estado == EstadoPedido.Aceite);
+
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            @evento.Titulo
+                        </h5>
+
+                        <p class="card-text">
+                            @evento.Descricao
+                        </p>
+
+                        <p class="mb-1">
+                            <strong>Data:</strong>
+                            @evento.DataHora.ToString(
+                                "dd/MM/yyyy HH:mm")
+                        </p>
+
+                        <p class="mb-2">
+                            <strong>Participantes:</strong>
+                            @numeroParticipantes /
+                            @evento.NumMaxParticipantes
+                        </p>
+
+                        <div class="mb-3">
+                            @foreach (var eventoCategoria in
+                                evento.EventosCategorias
+                                    .OrderBy(
+                                        ec => ec.Categoria.Nome))
+                            {
+                                <span class="badge bg-secondary">
+                                    @eventoCategoria.Categoria.Nome
+                                </span>
+                            }
+                        </div>
+
+                        <a asp-page="/Eventos/Details"
+                           asp-route-id="@evento.Id"
+                           class="btn btn-outline-primary">
+                            Ver evento
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<a asp-page="./Index"
+   class="btn btn-secondary">
+    Voltar aos utilizadores
+</a>

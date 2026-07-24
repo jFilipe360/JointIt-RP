@@ -38,7 +38,11 @@
         <h1>@Model.Evento.Titulo</h1>
 
         <p class="text-muted mb-0">
-            Criado por @Model.Evento.Criador.Nome
+            Criado por
+            <a asp-page="/Users/Details"
+               asp-route-id="@Model.Evento.CriadorId">
+                @Model.Evento.Criador.Nome
+            </a>
         </p>
     </div>
 
