@@ -25,6 +25,8 @@ namespace JoinIt.Web.Data
 
         public DbSet<ConviteEvento> ConvitesEvento { get; set; }
 
+        public DbSet<Notificacao> Notificacoes { get; set; }
+
         protected override void OnModelCreating(
             ModelBuilder builder)
         {
@@ -126,6 +128,20 @@ namespace JoinIt.Web.Data
                     c.RecetorId
                 })
                 .IsUnique();
+
+            builder.Entity<Notificacao>()
+                .HasOne(n => n.Utilizador)
+                .WithMany(u => u.Notificacoes)
+                .HasForeignKey(n => n.UtilizadorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Notificacao>()
+                .HasIndex(n => new
+                {
+                    n.UtilizadorId,
+                    n.Lida,
+                    n.CriadoEm
+                });
         }
     }
 }

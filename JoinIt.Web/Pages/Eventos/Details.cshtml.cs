@@ -1,6 +1,7 @@
 using JoinIt.Web.Data;
 using JoinIt.Web.Enums;
 using JoinIt.Web.Models;
+using JoinIt.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -12,11 +13,13 @@ namespace JoinIt.Web.Pages.Eventos
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly INotificacaoService _notificacaoService;
 
-        public DetailsModel( ApplicationDbContext context,UserManager<ApplicationUser> userManager)
+        public DetailsModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager, INotificacaoService notificacaoService)
         {
             _context = context;
             _userManager = userManager;
+            _notificacaoService = notificacaoService;
         }
 
         public Evento Evento { get; private set; } = null!;
@@ -43,9 +46,10 @@ namespace JoinIt.Web.Pages.Eventos
 
         public async Task<IActionResult> OnPostParticiparAsync(int id)
         {
-            string? utilizadorId = _userManager.GetUserId(User);
+            var utilizadorAtual =
+                await _userManager.GetUserAsync(User);
 
-            if (string.IsNullOrEmpty(utilizadorId))
+            if (utilizadorAtual is null)
             {
                 return Challenge();
             }
@@ -59,12 +63,12 @@ namespace JoinIt.Web.Pages.Eventos
                 return NotFound();
             }
 
-            if (evento.CriadorId == utilizadorId)
+            if (evento.CriadorId == utilizadorAtual.Id)
             {
                 return RedirectToPage("./Details", new { id });
             }
 
-            // Os eventos privados serão tratados através de convites.
+            // Eventos privados são tratados através dos convites.
             if (evento.IsPrivado)
             {
                 return Forbid();
@@ -91,14 +95,14 @@ namespace JoinIt.Web.Pages.Eventos
             }
 
             var participacao = evento.Participantes
-                .FirstOrDefault(
-                    p => p.UtilizadorId == utilizadorId);
+                .FirstOrDefault(p =>
+                    p.UtilizadorId == utilizadorAtual.Id);
 
             if (participacao is null)
             {
                 evento.Participantes.Add(new Participante
                 {
-                    UtilizadorId = utilizadorId,
+                    UtilizadorId = utilizadorAtual.Id,
                     Estado = EstadoPedido.Aceite,
                     DataPedido = DateTime.Now
                 });
@@ -111,6 +115,17 @@ namespace JoinIt.Web.Pages.Eventos
 
             await _context.SaveChangesAsync();
 
+            string link = Url.Page(
+                "/Eventos/Details",
+                new { id = evento.Id })
+                ?? $"/Eventos/Details?id={evento.Id}";
+
+            await _notificacaoService.CriarAsync(
+                evento.CriadorId,
+                "Novo participante",
+                $"{utilizadorAtual.Nome} entrou no teu evento {evento.Titulo}.",
+                link);
+
             TempData["MensagemSucesso"] =
                 "Entraste no evento com sucesso.";
 
@@ -119,9 +134,10 @@ namespace JoinIt.Web.Pages.Eventos
 
         public async Task<IActionResult> OnPostSairAsync(int id)
         {
-            string? utilizadorId = _userManager.GetUserId(User);
+            var utilizadorAtual =
+                await _userManager.GetUserAsync(User);
 
-            if (string.IsNullOrEmpty(utilizadorId))
+            if (utilizadorAtual is null)
             {
                 return Challenge();
             }
@@ -135,7 +151,7 @@ namespace JoinIt.Web.Pages.Eventos
             }
 
             // O criador não pode abandonar o próprio evento.
-            if (evento.CriadorId == utilizadorId)
+            if (evento.CriadorId == utilizadorAtual.Id)
             {
                 return Forbid();
             }
@@ -143,20 +159,23 @@ namespace JoinIt.Web.Pages.Eventos
             var participacao = await _context.Participantes
                 .FirstOrDefaultAsync(p =>
                     p.EventoId == id &&
-                    p.UtilizadorId == utilizadorId);
+                    p.UtilizadorId == utilizadorAtual.Id);
+
+            bool estavaAParticipar =
+                participacao?.Estado == EstadoPedido.Aceite;
 
             if (participacao is not null)
             {
                 _context.Participantes.Remove(participacao);
             }
 
-            // Ao sair de um evento privado, o convite aceite é removido.
+            // Num evento privado, sair também remove o convite aceite.
             if (evento.IsPrivado)
             {
                 var convite = await _context.ConvitesEvento
                     .FirstOrDefaultAsync(c =>
                         c.EventoId == id &&
-                        c.RecetorId == utilizadorId &&
+                        c.RecetorId == utilizadorAtual.Id &&
                         c.Estado == EstadoPedido.Aceite);
 
                 if (convite is not null)
@@ -166,6 +185,21 @@ namespace JoinIt.Web.Pages.Eventos
             }
 
             await _context.SaveChangesAsync();
+
+            // Neste momento só notificamos saídas de eventos públicos.
+            if (!evento.IsPrivado && estavaAParticipar)
+            {
+                string link = Url.Page(
+                    "/Eventos/Details",
+                    new { id = evento.Id })
+                    ?? $"/Eventos/Details?id={evento.Id}";
+
+                await _notificacaoService.CriarAsync(
+                    evento.CriadorId,
+                    "Participante saiu",
+                    $"{utilizadorAtual.Nome} saiu do teu evento {evento.Titulo}.",
+                    link);
+            }
 
             TempData["MensagemSucesso"] =
                 "Saíste do evento.";

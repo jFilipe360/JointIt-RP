@@ -1,6 +1,7 @@
 using JoinIt.Web.Data;
 using JoinIt.Web.Enums;
 using JoinIt.Web.Models;
+using JoinIt.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,13 +15,16 @@ namespace JoinIt.Web.Pages.Friends
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly INotificacaoService _notificacaoService;
 
         public IndexModel(
             ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            INotificacaoService notificacaoService)
         {
             _context = context;
             _userManager = userManager;
+            _notificacaoService = notificacaoService;
         }
 
         public IList<Amizade> PedidosRecebidos { get; private set; }
@@ -55,17 +59,18 @@ namespace JoinIt.Web.Pages.Friends
 
         public async Task<IActionResult> OnPostAceitarAsync(int id)
         {
-            string? utilizadorId = _userManager.GetUserId(User);
+            var utilizadorAtual = await _userManager.GetUserAsync(User);
 
-            if (string.IsNullOrEmpty(utilizadorId))
+            if (utilizadorAtual is null)
             {
                 return Challenge();
             }
 
             var amizade = await _context.Amizades
+                .Include(a => a.Emissor)
                 .FirstOrDefaultAsync(a =>
                     a.Id == id &&
-                    a.RecetorId == utilizadorId &&
+                    a.RecetorId == utilizadorAtual.Id &&
                     a.Estado == EstadoPedido.Pendente);
 
             if (amizade is null)
@@ -80,6 +85,17 @@ namespace JoinIt.Web.Pages.Friends
 
             await _context.SaveChangesAsync();
 
+            string link = Url.Page(
+                "/Users/Details",
+                new { id = utilizadorAtual.Id })
+                ?? $"/Users/Details?id={utilizadorAtual.Id}";
+
+            await _notificacaoService.CriarAsync(
+                amizade.EmissorId,
+                "Pedido de amizade aceite",
+                $"{utilizadorAtual.Nome} aceitou o teu pedido de amizade.",
+                link);
+
             TempData["MensagemSucesso"] =
                 "Pedido de amizade aceite.";
 
@@ -88,23 +104,24 @@ namespace JoinIt.Web.Pages.Friends
 
         public async Task<IActionResult> OnPostRejeitarAsync(int id)
         {
-            string? utilizadorId = _userManager.GetUserId(User);
+            var utilizadorAtual = await _userManager.GetUserAsync(User);
 
-            if (string.IsNullOrEmpty(utilizadorId))
+            if (utilizadorAtual is null)
             {
                 return Challenge();
             }
 
             var amizade = await _context.Amizades
+                .Include(a => a.Emissor)
                 .FirstOrDefaultAsync(a =>
                     a.Id == id &&
-                    a.RecetorId == utilizadorId &&
+                    a.RecetorId == utilizadorAtual.Id &&
                     a.Estado == EstadoPedido.Pendente);
 
             if (amizade is null)
             {
                 TempData["MensagemErro"] =
-                    "O pedido de amizade não foi encontrado.";
+                    "O pedido de amizade pendente não foi encontrado.";
 
                 return RedirectToPage();
             }
@@ -112,6 +129,15 @@ namespace JoinIt.Web.Pages.Friends
             amizade.Estado = EstadoPedido.Rejeitado;
 
             await _context.SaveChangesAsync();
+
+            string link =
+                Url.Page("/Amigos/Index") ?? "/Amigos";
+
+            await _notificacaoService.CriarAsync(
+                amizade.EmissorId,
+                "Pedido de amizade rejeitado",
+                $"{utilizadorAtual.Nome} rejeitou o teu pedido de amizade.",
+                link);
 
             TempData["MensagemSucesso"] =
                 "Pedido de amizade rejeitado.";

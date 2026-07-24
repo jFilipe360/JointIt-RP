@@ -1,5 +1,6 @@
 using JoinIt.Web.Data;
 using JoinIt.Web.Models;
+using JoinIt.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,10 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.R
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
 builder.Services.AddRazorPages();
+
+builder.Services.AddScoped<
+    INotificacaoService,
+    NotificacaoService>();
 
 var app = builder.Build();
 

@@ -1,6 +1,7 @@
 using JoinIt.Web.Data;
 using JoinIt.Web.Enums;
 using JoinIt.Web.Models;
+using JoinIt.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,13 +15,16 @@ namespace JoinIt.Web.Pages.Eventos
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly INotificacaoService _notificacaoService;
 
         public InviteModel(
             ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            INotificacaoService notificacaoService)
         {
             _context = context;
             _userManager = userManager;
+            _notificacaoService = notificacaoService;
         }
 
         public Evento Evento { get; private set; } = null!;
@@ -67,9 +71,7 @@ namespace JoinIt.Web.Pages.Eventos
             return Page();
         }
 
-        public async Task<IActionResult> OnPostEnviarAsync(
-            int id,
-            string recetorId)
+        public async Task<IActionResult> OnPostEnviarAsync(int id,string recetorId)
         {
             string? utilizadorId = _userManager.GetUserId(User);
 
@@ -167,6 +169,8 @@ namespace JoinIt.Web.Pages.Eventos
                 .FirstOrDefault(c =>
                     c.RecetorId == recetorId);
 
+            bool criarNotificacao = false;
+
             if (convite is null)
             {
                 evento.Convites.Add(new ConviteEvento
@@ -177,6 +181,8 @@ namespace JoinIt.Web.Pages.Eventos
                     CriadoEm = DateTime.Now
                 });
 
+                criarNotificacao = true;
+
                 TempData["MensagemSucesso"] =
                     "Convite enviado com sucesso.";
             }
@@ -186,6 +192,8 @@ namespace JoinIt.Web.Pages.Eventos
                 convite.Estado = EstadoPedido.Pendente;
                 convite.CriadoEm = DateTime.Now;
                 convite.RespondidoEm = null;
+
+                criarNotificacao = true;
 
                 TempData["MensagemSucesso"] =
                     "Convite enviado novamente.";
@@ -206,6 +214,19 @@ namespace JoinIt.Web.Pages.Eventos
             }
 
             await _context.SaveChangesAsync();
+
+            if (criarNotificacao)
+            {
+                string link =
+                    Url.Page("/Convites/Index") ?? "/Convites";
+
+                await _notificacaoService.CriarAsync(
+                    recetorId,
+                    "Novo convite para evento",
+                    $"Foste convidado para o evento {evento.Titulo}.",
+                    link);
+            }
+
 
             return RedirectToPage(new { id });
         }

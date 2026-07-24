@@ -1,6 +1,7 @@
 using JoinIt.Web.Data;
 using JoinIt.Web.Enums;
 using JoinIt.Web.Models;
+using JoinIt.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,13 +15,16 @@ namespace JoinIt.Web.Pages.Users
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly INotificacaoService _notificacaoService;
 
         public DetailsModel(
             ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            INotificacaoService notificacaoService)
         {
             _context = context;
             _userManager = userManager;
+            _notificacaoService = notificacaoService;
         }
 
         public ApplicationUser Utilizador { get; private set; } = null!;
@@ -101,13 +105,11 @@ namespace JoinIt.Web.Pages.Users
             return Page();
         }
 
-        public async Task<IActionResult> OnPostEnviarPedidoAsync(
-            string id)
+        public async Task<IActionResult> OnPostEnviarPedidoAsync(string id)
         {
-            string? utilizadorAtualId =
-                _userManager.GetUserId(User);
+            var utilizadorAtual = await _userManager.GetUserAsync(User);
 
-            if (string.IsNullOrEmpty(utilizadorAtualId))
+            if (utilizadorAtual is null)
             {
                 return Challenge();
             }
@@ -117,7 +119,7 @@ namespace JoinIt.Web.Pages.Users
                 return NotFound();
             }
 
-            if (id == utilizadorAtualId)
+            if (id == utilizadorAtual.Id)
             {
                 TempData["MensagemErro"] =
                     "Não podes enviar um pedido de amizade a ti próprio.";
@@ -125,45 +127,47 @@ namespace JoinIt.Web.Pages.Users
                 return RedirectToPage("./Details", new { id });
             }
 
-            bool utilizadorExiste = await _context.Users
-                .AnyAsync(u => u.Id == id);
+            var utilizadorDestino = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == id);
 
-            if (!utilizadorExiste)
+            if (utilizadorDestino is null)
             {
                 return NotFound();
             }
 
             var amizadeExistente = await _context.Amizades
                 .FirstOrDefaultAsync(a =>
-                    (a.EmissorId == utilizadorAtualId &&
+                    (a.EmissorId == utilizadorAtual.Id &&
                      a.RecetorId == id) ||
                     (a.EmissorId == id &&
-                     a.RecetorId == utilizadorAtualId));
+                     a.RecetorId == utilizadorAtual.Id));
+
+            bool criarNotificacao = false;
 
             if (amizadeExistente is null)
             {
                 _context.Amizades.Add(new Amizade
                 {
-                    EmissorId = utilizadorAtualId,
+                    EmissorId = utilizadorAtual.Id,
                     RecetorId = id,
                     Estado = EstadoPedido.Pendente,
                     CriadoEm = DateTime.Now
                 });
 
-                await _context.SaveChangesAsync();
+                criarNotificacao = true;
 
                 TempData["MensagemSucesso"] =
                     "Pedido de amizade enviado.";
             }
             else if (amizadeExistente.Estado == EstadoPedido.Rejeitado)
             {
-                // Permite enviar novamente após uma rejeição anterior.
-                amizadeExistente.EmissorId = utilizadorAtualId;
+                amizadeExistente.EmissorId = utilizadorAtual.Id;
                 amizadeExistente.RecetorId = id;
                 amizadeExistente.Estado = EstadoPedido.Pendente;
                 amizadeExistente.CriadoEm = DateTime.Now;
 
-                await _context.SaveChangesAsync();
+                criarNotificacao = true;
 
                 TempData["MensagemSucesso"] =
                     "Pedido de amizade enviado novamente.";
@@ -177,6 +181,20 @@ namespace JoinIt.Web.Pages.Users
             {
                 TempData["MensagemErro"] =
                     "Já existe um pedido de amizade pendente.";
+            }
+
+            if (criarNotificacao)
+            {
+                await _context.SaveChangesAsync();
+
+                string link =
+                    Url.Page("/Amigos/Index") ?? "/Friends";
+
+                await _notificacaoService.CriarAsync(
+                    utilizadorDestino.Id,
+                    "Novo pedido de amizade",
+                    $"{utilizadorAtual.Nome} enviou-te um pedido de amizade.",
+                    link);
             }
 
             return RedirectToPage("./Details", new { id });

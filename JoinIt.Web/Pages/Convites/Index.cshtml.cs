@@ -1,6 +1,7 @@
 using JoinIt.Web.Data;
 using JoinIt.Web.Enums;
 using JoinIt.Web.Models;
+using JoinIt.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,13 +15,16 @@ namespace JoinIt.Web.Pages.Invites
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly INotificacaoService _notificacaoService;
 
         public IndexModel(
             ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            INotificacaoService notificacaoService)
         {
             _context = context;
             _userManager = userManager;
+            _notificacaoService = notificacaoService;
         }
 
         public IList<ConviteEvento> ConvitesPendentes { get; private set; }
@@ -45,9 +49,10 @@ namespace JoinIt.Web.Pages.Invites
 
         public async Task<IActionResult> OnPostAceitarAsync(int id)
         {
-            string? utilizadorId = _userManager.GetUserId(User);
+            var utilizadorAtual =
+                await _userManager.GetUserAsync(User);
 
-            if (string.IsNullOrEmpty(utilizadorId))
+            if (utilizadorAtual is null)
             {
                 return Challenge();
             }
@@ -57,7 +62,7 @@ namespace JoinIt.Web.Pages.Invites
                     .ThenInclude(e => e.Participantes)
                 .FirstOrDefaultAsync(c =>
                     c.Id == id &&
-                    c.RecetorId == utilizadorId);
+                    c.RecetorId == utilizadorAtual.Id);
 
             if (convite is null)
             {
@@ -107,13 +112,13 @@ namespace JoinIt.Web.Pages.Invites
 
             var participacao = evento.Participantes
                 .FirstOrDefault(p =>
-                    p.UtilizadorId == utilizadorId);
+                    p.UtilizadorId == utilizadorAtual.Id);
 
             if (participacao is null)
             {
                 evento.Participantes.Add(new Participante
                 {
-                    UtilizadorId = utilizadorId,
+                    UtilizadorId = utilizadorAtual.Id,
                     Estado = EstadoPedido.Aceite,
                     DataPedido = DateTime.Now
                 });
@@ -129,6 +134,17 @@ namespace JoinIt.Web.Pages.Invites
 
             await _context.SaveChangesAsync();
 
+            string link = Url.Page(
+                "/Eventos/Details",
+                new { id = evento.Id })
+                ?? $"/Eventos/Details?id={evento.Id}";
+
+            await _notificacaoService.CriarAsync(
+                convite.EmissorId,
+                "Convite aceite",
+                $"{utilizadorAtual.Nome} aceitou o convite para {evento.Titulo}.",
+                link);
+
             TempData["MensagemSucesso"] =
                 "Convite aceite. Entraste no evento.";
 
@@ -139,17 +155,19 @@ namespace JoinIt.Web.Pages.Invites
 
         public async Task<IActionResult> OnPostRejeitarAsync(int id)
         {
-            string? utilizadorId = _userManager.GetUserId(User);
+            var utilizadorAtual =
+                await _userManager.GetUserAsync(User);
 
-            if (string.IsNullOrEmpty(utilizadorId))
+            if (utilizadorAtual is null)
             {
                 return Challenge();
             }
 
             var convite = await _context.ConvitesEvento
+                .Include(c => c.Evento)
                 .FirstOrDefaultAsync(c =>
                     c.Id == id &&
-                    c.RecetorId == utilizadorId &&
+                    c.RecetorId == utilizadorAtual.Id &&
                     c.Estado == EstadoPedido.Pendente);
 
             if (convite is null)
@@ -164,6 +182,17 @@ namespace JoinIt.Web.Pages.Invites
             convite.RespondidoEm = DateTime.Now;
 
             await _context.SaveChangesAsync();
+
+            string link = Url.Page(
+                "/Eventos/Details",
+                new { id = convite.EventoId })
+                ?? $"/Eventos/Details?id={convite.EventoId}";
+
+            await _notificacaoService.CriarAsync(
+                convite.EmissorId,
+                "Convite rejeitado",
+                $"{utilizadorAtual.Nome} rejeitou o convite para {convite.Evento.Titulo}.",
+                link);
 
             TempData["MensagemSucesso"] =
                 "Convite rejeitado.";

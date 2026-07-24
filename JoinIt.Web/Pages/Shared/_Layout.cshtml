@@ -55,6 +55,9 @@
                                     Convites
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                @await Component.InvokeAsync("NotificacaoCount")
+                            </li>
                         }
                     </ul>
                     <partial name="_LoginPartial" />
