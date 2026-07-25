@@ -16,15 +16,18 @@ namespace JoinIt.Web.Pages.Eventos
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly INotificacaoService _notificacaoService;
+        private readonly IEstadoEventoService _estadoEventoService;
 
         public InviteModel(
             ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
-            INotificacaoService notificacaoService)
+            INotificacaoService notificacaoService,
+            IEstadoEventoService estadoEventoService)
         {
             _context = context;
             _userManager = userManager;
             _notificacaoService = notificacaoService;
+            _estadoEventoService = estadoEventoService;
         }
 
         public Evento Evento { get; private set; } = null!;
@@ -71,7 +74,9 @@ namespace JoinIt.Web.Pages.Eventos
             return Page();
         }
 
-        public async Task<IActionResult> OnPostEnviarAsync(int id,string recetorId)
+        public async Task<IActionResult> OnPostEnviarAsync(
+            int id,
+            string recetorId)
         {
             string? utilizadorId = _userManager.GetUserId(User);
 
@@ -114,20 +119,44 @@ namespace JoinIt.Web.Pages.Eventos
                     new { id });
             }
 
-            if (evento.Estado != EstadoEvento.ParaBreve ||
+            EstadoEvento estadoAtual =
+                await AtualizarEstadoAsync(evento);
+
+            if (estadoAtual == EstadoEvento.Cancelado)
+            {
+                TempData["MensagemErro"] =
+                    "Não é possível enviar convites para um evento cancelado.";
+
+                return RedirectToPage(
+                    "./Details",
+                    new { id });
+            }
+
+            if (estadoAtual == EstadoEvento.Terminado)
+            {
+                TempData["MensagemErro"] =
+                    "Não é possível enviar convites para um evento terminado.";
+
+                return RedirectToPage(
+                    "./Details",
+                    new { id });
+            }
+
+            if (estadoAtual == EstadoEvento.ADecorrer ||
                 evento.DataHora <= DateTime.Now)
             {
                 TempData["MensagemErro"] =
-                    "Já não é possível enviar convites para este evento.";
+                    "O evento já começou. Já não é possível enviar convites.";
 
-                return RedirectToPage(new { id });
+                return RedirectToPage(
+                    "./Details",
+                    new { id });
             }
 
             int numeroParticipantes = evento.Participantes.Count(
                 p => p.Estado == EstadoPedido.Aceite);
 
-            if (numeroParticipantes >=
-                evento.NumMaxParticipantes)
+            if (numeroParticipantes >= evento.NumMaxParticipantes)
             {
                 TempData["MensagemErro"] =
                     "O evento já atingiu a lotação máxima.";
@@ -136,13 +165,18 @@ namespace JoinIt.Web.Pages.Eventos
             }
 
             bool saoAmigos = await _context.Amizades
+                .AsNoTracking()
                 .AnyAsync(a =>
                     a.Estado == EstadoPedido.Aceite &&
                     (
-                        (a.EmissorId == utilizadorId &&
-                         a.RecetorId == recetorId) ||
-                        (a.EmissorId == recetorId &&
-                         a.RecetorId == utilizadorId)
+                        (
+                            a.EmissorId == utilizadorId &&
+                            a.RecetorId == recetorId
+                        ) ||
+                        (
+                            a.EmissorId == recetorId &&
+                            a.RecetorId == utilizadorId
+                        )
                     ));
 
             if (!saoAmigos)
@@ -227,7 +261,6 @@ namespace JoinIt.Web.Pages.Eventos
                     link);
             }
 
-
             return RedirectToPage(new { id });
         }
 
@@ -311,6 +344,44 @@ namespace JoinIt.Web.Pages.Eventos
                     new { id });
             }
 
+            EstadoEvento estadoAtual =
+                _estadoEventoService.CalcularEstado(
+                    evento.DataHora,
+                    evento.DataFim,
+                    evento.Estado);
+
+            if (estadoAtual == EstadoEvento.Cancelado)
+            {
+                TempData["MensagemErro"] =
+                    "Não podes gerir convites de um evento cancelado.";
+
+                return RedirectToPage(
+                    "./Details",
+                    new { id });
+            }
+
+            if (estadoAtual == EstadoEvento.Terminado)
+            {
+                TempData["MensagemErro"] =
+                    "Não podes gerir convites de um evento terminado.";
+
+                return RedirectToPage(
+                    "./Details",
+                    new { id });
+            }
+
+            if (estadoAtual == EstadoEvento.ADecorrer ||
+                evento.DataHora <= DateTime.Now)
+            {
+                TempData["MensagemErro"] =
+                    "O evento já começou. Já não podes enviar convites.";
+
+                return RedirectToPage(
+                    "./Details",
+                    new { id });
+            }
+
+            evento.Estado = estadoAtual;
             Evento = evento;
 
             NumeroParticipantes = evento.Participantes.Count(
@@ -359,6 +430,24 @@ namespace JoinIt.Web.Pages.Eventos
                 .ToList();
 
             return null;
+        }
+
+        private async Task<EstadoEvento> AtualizarEstadoAsync(
+            Evento evento)
+        {
+            EstadoEvento novoEstado =
+                _estadoEventoService.CalcularEstado(
+                    evento.DataHora,
+                    evento.DataFim,
+                    evento.Estado);
+
+            if (evento.Estado != novoEstado)
+            {
+                evento.Estado = novoEstado;
+                await _context.SaveChangesAsync();
+            }
+
+            return novoEstado;
         }
     }
 }

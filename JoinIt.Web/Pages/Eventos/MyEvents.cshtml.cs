@@ -1,6 +1,7 @@
 using JoinIt.Web.Data;
 using JoinIt.Web.Enums;
 using JoinIt.Web.Models;
+using JoinIt.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,19 +15,25 @@ namespace JoinIt.Web.Pages.Eventos
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IEstadoEventoService _estadoEventoService;
 
         public MyEventsModel(
             ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            IEstadoEventoService estadoEventoService)
         {
             _context = context;
             _userManager = userManager;
+            _estadoEventoService = estadoEventoService;
         }
 
-        public IList<Evento> EventosCriados { get; set; }
+        [BindProperty(SupportsGet = true)]
+        public string Filtro { get; set; } = "ativos";
+
+        public IList<Evento> EventosCriados { get; private set; }
             = new List<Evento>();
 
-        public IList<Evento> EventosParticipados { get; set; }
+        public IList<Evento> EventosParticipados { get; private set; }
             = new List<Evento>();
 
         public async Task<IActionResult> OnGetAsync()
@@ -38,17 +45,20 @@ namespace JoinIt.Web.Pages.Eventos
                 return Challenge();
             }
 
-            EventosCriados = await _context.Eventos
+            await _estadoEventoService.AtualizarEstadosAsync();
+
+            var queryEventosCriados = _context.Eventos
                 .AsNoTracking()
+                .AsSplitQuery()
                 .Where(e => e.CriadorId == utilizadorId)
                 .Include(e => e.EventosCategorias)
                     .ThenInclude(ec => ec.Categoria)
                 .Include(e => e.Participantes)
-                .OrderBy(e => e.DataHora)
-                .ToListAsync();
+                .AsQueryable();
 
-            EventosParticipados = await _context.Eventos
+            var queryEventosParticipados = _context.Eventos
                 .AsNoTracking()
+                .AsSplitQuery()
                 .Where(e =>
                     e.CriadorId != utilizadorId &&
                     e.Participantes.Any(p =>
@@ -58,10 +68,58 @@ namespace JoinIt.Web.Pages.Eventos
                 .Include(e => e.EventosCategorias)
                     .ThenInclude(ec => ec.Categoria)
                 .Include(e => e.Participantes)
-                .OrderBy(e => e.DataHora)
+                .AsQueryable();
+
+            queryEventosCriados =
+                AplicarFiltro(queryEventosCriados);
+
+            queryEventosParticipados =
+                AplicarFiltro(queryEventosParticipados);
+
+            EventosCriados = await Ordenar(queryEventosCriados)
+                .ToListAsync();
+
+            EventosParticipados = await Ordenar(queryEventosParticipados)
                 .ToListAsync();
 
             return Page();
+        }
+
+        private IQueryable<Evento> AplicarFiltro(
+            IQueryable<Evento> query)
+        {
+            return Filtro switch
+            {
+                "todos" => query,
+
+                "futuros" => query.Where(e =>
+                    e.Estado == EstadoEvento.ParaBreve),
+
+                "decorrer" => query.Where(e =>
+                    e.Estado == EstadoEvento.ADecorrer),
+
+                "terminados" => query.Where(e =>
+                    e.Estado == EstadoEvento.Terminado),
+
+                "cancelados" => query.Where(e =>
+                    e.Estado == EstadoEvento.Cancelado),
+
+                _ => query.Where(e =>
+                    e.Estado == EstadoEvento.ParaBreve ||
+                    e.Estado == EstadoEvento.ADecorrer)
+            };
+        }
+
+        private IQueryable<Evento> Ordenar(
+            IQueryable<Evento> query)
+        {
+            if (Filtro == "terminados" ||
+                Filtro == "cancelados")
+            {
+                return query.OrderByDescending(e => e.DataHora);
+            }
+
+            return query.OrderBy(e => e.DataHora);
         }
     }
 }

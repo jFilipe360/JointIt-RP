@@ -1,5 +1,6 @@
 ﻿@page
 @using JoinIt.Web.Enums
+@using System.Globalization
 @model JoinIt.Web.Pages.Eventos.DetailsModel
 
 @{
@@ -14,9 +15,41 @@
         _ => Model.Evento.Estado.ToString()
     };
 
+    string classeEstado = Model.Evento.Estado switch
+    {
+        EstadoEvento.ParaBreve => "bg-primary",
+        EstadoEvento.ADecorrer => "bg-success",
+        EstadoEvento.Terminado => "bg-secondary",
+        EstadoEvento.Cancelado => "bg-danger",
+        _ => "bg-secondary"
+    };
+
     string returnUrl =
         $"{ViewContext.HttpContext.Request.Path}" +
         $"{ViewContext.HttpContext.Request.QueryString}";
+
+    bool temCoordenadas =
+        Model.Evento.Latitude.HasValue &&
+        Model.Evento.Longitude.HasValue;
+
+    string? latitudeMapa = Model.Evento.Latitude?
+        .ToString(CultureInfo.InvariantCulture);
+
+    string? longitudeMapa = Model.Evento.Longitude?
+        .ToString(CultureInfo.InvariantCulture);
+
+    string? urlMapa = temCoordenadas
+        ? $"https://www.openstreetmap.org/" +
+          $"?mlat={latitudeMapa}&mlon={longitudeMapa}" +
+          $"#map=16/{latitudeMapa}/{longitudeMapa}"
+        : null;
+}
+
+@if (temCoordenadas)
+{
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          crossorigin="" />
 }
 
 @if (TempData["MensagemSucesso"] is string mensagemSucesso)
@@ -33,12 +66,20 @@
     </div>
 }
 
+@if (Model.Evento.Estado == EstadoEvento.Cancelado)
+{
+    <div class="alert alert-danger">
+        Este evento foi cancelado.
+    </div>
+}
+
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
         <h1>@Model.Evento.Titulo</h1>
 
         <p class="text-muted mb-0">
             Criado por
+
             <a asp-page="/Users/Details"
                asp-route-id="@Model.Evento.CriadorId">
                 @Model.Evento.Criador.Nome
@@ -46,28 +87,80 @@
         </p>
     </div>
 
-    @if (Model.Evento.IsPrivado)
-    {
-        <span class="badge bg-warning text-dark fs-6">
-            Privado
+    <div class="d-flex flex-column align-items-end gap-2">
+        @if (Model.Evento.IsPrivado)
+        {
+            <span class="badge bg-warning text-dark fs-6">
+                Privado
+            </span>
+        }
+        else
+        {
+            <span class="badge bg-success fs-6">
+                Público
+            </span>
+        }
+
+        <span class="badge @classeEstado fs-6">
+            @estado
         </span>
-    }
-    else
-    {
-        <span class="badge bg-success fs-6">
-            Público
-        </span>
-    }
+    </div>
 </div>
 
 <div class="row">
     <div class="col-lg-8">
+
         <div class="card shadow-sm mb-4">
             <div class="card-body">
-                <h4 class="card-title">Descrição</h4>
+                <h4 class="card-title">
+                    Descrição
+                </h4>
 
                 <p class="card-text"
                    style="white-space: pre-line;">@Model.Evento.Descricao</p>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h4 class="card-title">
+                    Localização
+                </h4>
+
+                <p class="mb-1">
+                    <strong>Local:</strong>
+                    @Model.Evento.Local
+                </p>
+
+                @if (!string.IsNullOrWhiteSpace(Model.Evento.Morada))
+                {
+                    <p class="mb-3">
+                        <strong>Morada:</strong>
+                        @Model.Evento.Morada
+                    </p>
+                }
+
+                @if (temCoordenadas)
+                {
+                    <div id="mapaEvento"
+                         class="rounded border mb-3"
+                         style="height: 380px;">
+                    </div>
+
+                    <a href="@urlMapa"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="btn btn-sm btn-outline-primary">
+                        Abrir no OpenStreetMap
+                    </a>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">
+                        Este evento não tem uma localização exata selecionada
+                        no mapa.
+                    </p>
+                }
             </div>
         </div>
 
@@ -132,33 +225,86 @@
                 }
             </div>
         </div>
+
     </div>
 
     <div class="col-lg-4">
+
         <div class="card shadow-sm mb-4">
             <div class="card-body">
-                <h4 class="card-title">Informações</h4>
+                <h4 class="card-title">
+                    Informações
+                </h4>
 
                 <dl class="row mb-0">
-                    <dt class="col-sm-5">Data</dt>
+                    <dt class="col-sm-5">
+                        Início
+                    </dt>
+
                     <dd class="col-sm-7">
-                        @Model.Evento.DataHora.ToString("dd/MM/yyyy")
+                        @Model.Evento.DataHora.ToString("dd/MM/yyyy HH:mm")
                     </dd>
 
-                    <dt class="col-sm-5">Hora</dt>
+                    <dt class="col-sm-5">
+                        Fim
+                    </dt>
+
                     <dd class="col-sm-7">
-                        @Model.Evento.DataHora.ToString("HH:mm")
+                        @Model.Evento.DataFim.ToString("dd/MM/yyyy HH:mm")
                     </dd>
 
-                    <dt class="col-sm-5">Lotação</dt>
+                    <dt class="col-sm-5">
+                        Duração
+                    </dt>
+
+                    <dd class="col-sm-7">
+                        @{
+                            TimeSpan duracao =
+                                Model.Evento.DataFim -
+                                Model.Evento.DataHora;
+
+                            if (duracao.TotalDays >= 1)
+                            {
+                                <span>
+                                    @duracao.Days dia(s) e
+                                    @duracao.Hours hora(s)
+                                </span>
+                            }
+                            else
+                            {
+                                <span>
+                                    @duracao.Hours hora(s) e
+                                    @duracao.Minutes minuto(s)
+                                </span>
+                            }
+                        }
+                    </dd>
+
+                    <dt class="col-sm-5">
+                        Lotação
+                    </dt>
+
                     <dd class="col-sm-7">
                         @Model.NumeroParticipantes /
                         @Model.Evento.NumMaxParticipantes
                     </dd>
 
-                    <dt class="col-sm-5">Estado</dt>
+                    <dt class="col-sm-5">
+                        Estado
+                    </dt>
+
                     <dd class="col-sm-7">
-                        @estado
+                        <span class="badge @classeEstado">
+                            @estado
+                        </span>
+                    </dd>
+
+                    <dt class="col-sm-5">
+                        Local
+                    </dt>
+
+                    <dd class="col-sm-7">
+                        @Model.Evento.Local
                     </dd>
                 </dl>
             </div>
@@ -166,7 +312,9 @@
 
         <div class="card shadow-sm mb-4">
             <div class="card-body">
-                <h4 class="card-title">Categorias</h4>
+                <h4 class="card-title">
+                    Categorias
+                </h4>
 
                 @foreach (var eventoCategoria in
                     Model.Evento.EventosCategorias
@@ -179,25 +327,6 @@
             </div>
         </div>
 
-        @if (Model.Evento.Latitude.HasValue &&
-             Model.Evento.Longitude.HasValue)
-        {
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <h4 class="card-title">Localização</h4>
-
-                    <p class="mb-1">
-                        <strong>Latitude:</strong>
-                        @Model.Evento.Latitude
-                    </p>
-
-                    <p class="mb-0">
-                        <strong>Longitude:</strong>
-                        @Model.Evento.Longitude
-                    </p>
-                </div>
-            </div>
-        }
     </div>
 </div>
 
@@ -221,19 +350,36 @@
 
     @if (Model.PodeGerir)
     {
-        @if (Model.Evento.IsPrivado)
+        @if (Model.Evento.Estado != EstadoEvento.Cancelado &&
+             Model.Evento.Estado != EstadoEvento.Terminado)
         {
-            <a asp-page="./Invite"
-                asp-route-id="@Model.Evento.Id"
-                class="btn btn-success">
-                Convidar amigos
+            @if (Model.Evento.IsPrivado &&
+                 Model.Evento.Estado == EstadoEvento.ParaBreve)
+            {
+                <a asp-page="./Invite"
+                   asp-route-id="@Model.Evento.Id"
+                   class="btn btn-success">
+                    Convidar amigos
+                </a>
+            }
+
+            <a asp-page="./Edit"
+               asp-route-id="@Model.Evento.Id"
+               class="btn btn-primary">
+                Editar evento
             </a>
+
+            <form method="post"
+                  asp-page-handler="Cancelar"
+                  asp-route-id="@Model.Evento.Id"
+                  onsubmit="return confirm('Tens a certeza de que pretendes cancelar este evento?');">
+
+                <button type="submit"
+                        class="btn btn-warning">
+                    Cancelar evento
+                </button>
+            </form>
         }
-        <a asp-page="./Edit"
-           asp-route-id="@Model.Evento.Id"
-           class="btn btn-primary">
-            Editar evento
-        </a>
 
         <a asp-page="./Delete"
            asp-route-id="@Model.Evento.Id"
@@ -282,3 +428,37 @@
         </a>
     }
 </div>
+
+@section Scripts {
+    @if (temCoordenadas)
+    {
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+                crossorigin="">
+        </script>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                const latitudeEvento = @latitudeMapa;
+                const longitudeEvento = @longitudeMapa;
+
+                const mapa = L.map("mapaEvento").setView(
+                    [latitudeEvento, longitudeEvento],
+                    16
+                );
+
+                L.tileLayer(
+                    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                    {
+                        maxZoom: 19,
+                        attribution:
+                            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    }
+                ).addTo(mapa);
+
+                L.marker(
+                    [latitudeEvento, longitudeEvento]
+                ).addTo(mapa);
+            });
+        </script>
+    }
+}

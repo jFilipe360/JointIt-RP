@@ -23,6 +23,10 @@ builder.Services.AddScoped<
     INotificacaoService,
     NotificacaoService>();
 
+builder.Services.AddScoped<
+    IEstadoEventoService,
+    EstadoEventoService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

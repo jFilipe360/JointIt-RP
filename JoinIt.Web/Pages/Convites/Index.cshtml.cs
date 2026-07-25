@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
-namespace JoinIt.Web.Pages.Invites
+namespace JoinIt.Web.Pages.Convites
 {
     [Authorize]
     public class IndexModel : PageModel
@@ -16,15 +16,18 @@ namespace JoinIt.Web.Pages.Invites
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly INotificacaoService _notificacaoService;
+        private readonly IEstadoEventoService _estadoEventoService;
 
         public IndexModel(
             ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
-            INotificacaoService notificacaoService)
+            INotificacaoService notificacaoService,
+            IEstadoEventoService estadoEventoService)
         {
             _context = context;
             _userManager = userManager;
             _notificacaoService = notificacaoService;
+            _estadoEventoService = estadoEventoService;
         }
 
         public IList<ConviteEvento> ConvitesPendentes { get; private set; }
@@ -42,6 +45,7 @@ namespace JoinIt.Web.Pages.Invites
                 return Challenge();
             }
 
+            await _estadoEventoService.AtualizarEstadosAsync();
             await CarregarConvitesAsync(utilizadorId);
 
             return Page();
@@ -90,22 +94,39 @@ namespace JoinIt.Web.Pages.Invites
                 return RedirectToPage();
             }
 
-            if (evento.Estado != EstadoEvento.ParaBreve ||
-                evento.DataHora <= DateTime.Now)
+            EstadoEvento estadoAtual =
+                _estadoEventoService.CalcularEstado(
+                    evento.DataHora,
+                    evento.DataFim,
+                    evento.Estado);
+
+            if (evento.Estado != estadoAtual)
+            {
+                evento.Estado = estadoAtual;
+                await _context.SaveChangesAsync();
+            }
+
+            if (estadoAtual == EstadoEvento.Cancelado)
             {
                 TempData["MensagemErro"] =
-                    "Já não é possível aceitar este convite.";
+                    "Não é possível aceitar o convite porque o evento foi cancelado.";
 
                 return RedirectToPage();
             }
 
-            int numeroParticipantes = evento.Participantes.Count(
-                p => p.Estado == EstadoPedido.Aceite);
-
-            if (numeroParticipantes >= evento.NumMaxParticipantes)
+            if (estadoAtual == EstadoEvento.Terminado)
             {
                 TempData["MensagemErro"] =
-                    "O evento já atingiu a lotação máxima.";
+                    "Não é possível aceitar o convite porque o evento terminou.";
+
+                return RedirectToPage();
+            }
+
+            if (estadoAtual == EstadoEvento.ADecorrer ||
+                evento.DataHora <= DateTime.Now)
+            {
+                TempData["MensagemErro"] =
+                    "Não é possível aceitar o convite porque o evento já começou.";
 
                 return RedirectToPage();
             }
@@ -113,6 +134,21 @@ namespace JoinIt.Web.Pages.Invites
             var participacao = evento.Participantes
                 .FirstOrDefault(p =>
                     p.UtilizadorId == utilizadorAtual.Id);
+
+            bool jaParticipa =
+                participacao?.Estado == EstadoPedido.Aceite;
+
+            int numeroParticipantes = evento.Participantes.Count(
+                p => p.Estado == EstadoPedido.Aceite);
+
+            if (!jaParticipa &&
+                numeroParticipantes >= evento.NumMaxParticipantes)
+            {
+                TempData["MensagemErro"] =
+                    "O evento já atingiu a lotação máxima.";
+
+                return RedirectToPage();
+            }
 
             if (participacao is null)
             {
@@ -213,11 +249,13 @@ namespace JoinIt.Web.Pages.Invites
                 .ToListAsync();
 
             ConvitesPendentes = convites
-                .Where(c => c.Estado == EstadoPedido.Pendente)
+                .Where(c =>
+                    c.Estado == EstadoPedido.Pendente)
                 .ToList();
 
             HistoricoConvites = convites
-                .Where(c => c.Estado != EstadoPedido.Pendente)
+                .Where(c =>
+                    c.Estado != EstadoPedido.Pendente)
                 .ToList();
         }
     }

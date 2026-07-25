@@ -14,12 +14,18 @@ namespace JoinIt.Web.Pages.Eventos
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly INotificacaoService _notificacaoService;
+        private readonly IEstadoEventoService _estadoEventoService;
 
-        public DetailsModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager, INotificacaoService notificacaoService)
+        public DetailsModel(
+            ApplicationDbContext context,
+            UserManager<ApplicationUser> userManager,
+            INotificacaoService notificacaoService,
+            IEstadoEventoService estadoEventoService)
         {
             _context = context;
             _userManager = userManager;
             _notificacaoService = notificacaoService;
+            _estadoEventoService = estadoEventoService;
         }
 
         public Evento Evento { get; private set; } = null!;
@@ -46,6 +52,8 @@ namespace JoinIt.Web.Pages.Eventos
 
         public async Task<IActionResult> OnPostParticiparAsync(int id)
         {
+            await _estadoEventoService.AtualizarEstadosAsync();
+
             var utilizadorAtual =
                 await _userManager.GetUserAsync(User);
 
@@ -208,6 +216,96 @@ namespace JoinIt.Web.Pages.Eventos
             {
                 return RedirectToPage("./MyEvents");
             }
+
+            return RedirectToPage("./Details", new { id });
+        }
+
+        public async Task<IActionResult> OnPostCancelarAsync(int id)
+        {
+            string? utilizadorId = _userManager.GetUserId(User);
+
+            if (string.IsNullOrEmpty(utilizadorId))
+            {
+                return Challenge();
+            }
+
+            var evento = await _context.Eventos
+                .FirstOrDefaultAsync(e => e.Id == id);
+
+            if (evento is null)
+            {
+                return NotFound();
+            }
+
+            // Apenas o criador pode cancelar o evento.
+            if (evento.CriadorId != utilizadorId)
+            {
+                return Forbid();
+            }
+
+            if (evento.Estado == EstadoEvento.Cancelado)
+            {
+                TempData["MensagemErro"] =
+                    "Este evento já se encontra cancelado.";
+
+                return RedirectToPage("./Details", new { id });
+            }
+
+            if (evento.Estado == EstadoEvento.Terminado ||
+                evento.DataFim <= DateTime.Now)
+            {
+                TempData["MensagemErro"] =
+                    "Não é possível cancelar um evento terminado.";
+
+                return RedirectToPage("./Details", new { id });
+            }
+
+            // Participantes aceites do evento.
+            var participantes = await _context.Participantes
+                .Where(p =>
+                    p.EventoId == id &&
+                    p.Estado == EstadoPedido.Aceite &&
+                    p.UtilizadorId != utilizadorId)
+                .Select(p => p.UtilizadorId)
+                .ToListAsync();
+
+            // Utilizadores com convites pendentes ou aceites.
+            var convidados = await _context.ConvitesEvento
+                .Where(c =>
+                    c.EventoId == id &&
+                    c.RecetorId != utilizadorId &&
+                    (
+                        c.Estado == EstadoPedido.Pendente ||
+                        c.Estado == EstadoPedido.Aceite
+                    ))
+                .Select(c => c.RecetorId)
+                .ToListAsync();
+
+            var destinatarios = participantes
+                .Concat(convidados)
+                .Distinct()
+                .ToList();
+
+            evento.Estado = EstadoEvento.Cancelado;
+
+            await _context.SaveChangesAsync();
+
+            string link = Url.Page(
+                "/Eventos/Details",
+                new { id = evento.Id })
+                ?? $"/Eventos/Details?id={evento.Id}";
+
+            foreach (string destinatarioId in destinatarios)
+            {
+                await _notificacaoService.CriarAsync(
+                    destinatarioId,
+                    "Evento cancelado",
+                    $"O evento {evento.Titulo} foi cancelado pelo criador.",
+                    link);
+            }
+
+            TempData["MensagemSucesso"] =
+                "O evento foi cancelado com sucesso.";
 
             return RedirectToPage("./Details", new { id });
         }

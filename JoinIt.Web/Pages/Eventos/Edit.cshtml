@@ -1,145 +1,250 @@
 ﻿@page
+@using System.Globalization
 @model JoinIt.Web.Pages.Eventos.EditModel
 
 @{
     ViewData["Title"] = "Editar evento";
+
+    bool temCoordenadas =
+        Model.Input.Latitude.HasValue &&
+        Model.Input.Longitude.HasValue;
+
+    string latitudeInicial = Model.Input.Latitude?
+        .ToString(CultureInfo.InvariantCulture)
+        ?? "39.5";
+
+    string longitudeInicial = Model.Input.Longitude?
+        .ToString(CultureInfo.InvariantCulture)
+        ?? "-8.0";
 }
+
+<link rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      crossorigin="" />
 
 <h1>Editar evento</h1>
 
+<p class="text-muted mb-4">
+    Altera os dados e a localização do evento.
+</p>
+
 <div class="row">
-    <div class="col-md-7">
+    <div class="col-lg-8">
 
         <form method="post">
 
-            <input asp-for="Input.Id" type="hidden" />
+            <input asp-for="Input.Id"
+                   type="hidden" />
 
             <div asp-validation-summary="ModelOnly"
                  class="text-danger mb-3">
             </div>
 
-            <div class="mb-3">
-                <label asp-for="Input.Titulo"
-                       class="form-label">
-                </label>
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
 
-                <input asp-for="Input.Titulo"
-                       class="form-control" />
+                    <h5 class="card-title mb-3">
+                        Informações do evento
+                    </h5>
 
-                <span asp-validation-for="Input.Titulo"
-                      class="text-danger">
-                </span>
-            </div>
+                    <div class="mb-3">
+                        <label asp-for="Input.Titulo"
+                               class="form-label">
+                        </label>
 
-            <div class="mb-3">
-                <label asp-for="Input.Descricao"
-                       class="form-label">
-                </label>
+                        <input asp-for="Input.Titulo"
+                               class="form-control" />
 
-                <textarea asp-for="Input.Descricao"
-                          class="form-control"
-                          rows="5"></textarea>
+                        <span asp-validation-for="Input.Titulo"
+                              class="text-danger">
+                        </span>
+                    </div>
 
-                <span asp-validation-for="Input.Descricao"
-                      class="text-danger">
-                </span>
-            </div>
+                    <div class="mb-3">
+                        <label asp-for="Input.Descricao"
+                               class="form-label">
+                        </label>
 
-            <div class="mb-3">
-                <label asp-for="Input.DataHora"
-                       class="form-label">
-                </label>
+                        <textarea asp-for="Input.Descricao"
+                                  class="form-control"
+                                  rows="5"></textarea>
 
-                <input asp-for="Input.DataHora"
-                       type="datetime-local"
-                       class="form-control" />
+                        <span asp-validation-for="Input.Descricao"
+                              class="text-danger">
+                        </span>
+                    </div>
 
-                <span asp-validation-for="Input.DataHora"
-                      class="text-danger">
-                </span>
-            </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.DataHora"
+                                   class="form-label">
+                            </label>
 
-            <div class="mb-3">
-                <label asp-for="Input.NumMaxParticipantes"
-                       class="form-label">
-                </label>
+                            <input asp-for="Input.DataHora"
+                                   type="datetime-local"
+                                   class="form-control" />
 
-                <input asp-for="Input.NumMaxParticipantes"
-                       class="form-control" />
+                            <span asp-validation-for="Input.DataHora"
+                                  class="text-danger">
+                            </span>
+                        </div>
 
-                <span asp-validation-for="Input.NumMaxParticipantes"
-                      class="text-danger">
-                </span>
-            </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.DataFim"
+                                   class="form-label">
+                            </label>
 
-            <div class="mb-3">
-                <label asp-for="Input.CategoriasSelecionadas"
-                       class="form-label">
-                </label>
+                            <input asp-for="Input.DataFim"
+                                   type="datetime-local"
+                                   class="form-control" />
 
-                <select asp-for="Input.CategoriasSelecionadas"
-                        asp-items="Model.Categorias"
-                        class="form-select"
-                        multiple
-                        size="7">
-                </select>
+                            <span asp-validation-for="Input.DataFim"
+                                  class="text-danger">
+                            </span>
+                        </div>
+                    </div>
 
-                <div class="form-text">
-                    Mantém Ctrl pressionado para selecionar várias categorias.
+                    <div class="mb-3">
+                        <label asp-for="Input.NumMaxParticipantes"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="Input.NumMaxParticipantes"
+                               class="form-control" />
+
+                        <span asp-validation-for="Input.NumMaxParticipantes"
+                              class="text-danger">
+                        </span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.CategoriasSelecionadas"
+                               class="form-label">
+                        </label>
+
+                        <select asp-for="Input.CategoriasSelecionadas"
+                                asp-items="Model.Categorias"
+                                class="form-select"
+                                multiple
+                                size="7">
+                        </select>
+
+                        <div class="form-text">
+                            Mantém Ctrl pressionado para selecionar várias categorias.
+                        </div>
+
+                        <span asp-validation-for="Input.CategoriasSelecionadas"
+                              class="text-danger">
+                        </span>
+                    </div>
+
+                    <div class="form-check">
+                        <input asp-for="Input.IsPrivado"
+                               class="form-check-input" />
+
+                        <label asp-for="Input.IsPrivado"
+                               class="form-check-label">
+                        </label>
+
+                        <div class="form-text">
+                            Eventos privados só podem ser vistos por participantes
+                            e utilizadores convidados.
+                        </div>
+                    </div>
+
                 </div>
-
-                <span asp-validation-for="Input.CategoriasSelecionadas"
-                      class="text-danger">
-                </span>
             </div>
 
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label asp-for="Input.Latitude"
-                           class="form-label">
-                    </label>
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+
+                    <h5 class="card-title mb-3">
+                        Localização
+                    </h5>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Local"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="Input.Local"
+                               class="form-control"
+                               placeholder="Ex.: Biblioteca Municipal" />
+
+                        <span asp-validation-for="Input.Local"
+                              class="text-danger">
+                        </span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Morada"
+                               class="form-label">
+                        </label>
+
+                        <input asp-for="Input.Morada"
+                               class="form-control"
+                               placeholder="Ex.: Rua Principal, 25, Porto" />
+
+                        <span asp-validation-for="Input.Morada"
+                              class="text-danger">
+                        </span>
+                    </div>
+
+                    <p class="text-muted mb-2">
+                        Clica no mapa para alterar a localização exata.
+                    </p>
+
+                    <div id="mapa"
+                         class="rounded border mb-3"
+                         style="height: 420px;">
+                    </div>
 
                     <input asp-for="Input.Latitude"
-                           class="form-control" />
-
-                    <span asp-validation-for="Input.Latitude"
-                          class="text-danger">
-                    </span>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label asp-for="Input.Longitude"
-                           class="form-label">
-                    </label>
+                           type="hidden"
+                           id="latitude" />
 
                     <input asp-for="Input.Longitude"
-                           class="form-control" />
+                           type="hidden"
+                           id="longitude" />
 
-                    <span asp-validation-for="Input.Longitude"
-                          class="text-danger">
-                    </span>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <button type="button"
+                                id="limparLocalizacao"
+                                class="btn btn-sm btn-outline-secondary">
+                            Limpar localização
+                        </button>
+
+                        <span id="coordenadasSelecionadas"
+                              class="text-muted small">
+                            Nenhuma localização selecionada.
+                        </span>
+                    </div>
+
+                    <div class="mt-2">
+                        <span asp-validation-for="Input.Latitude"
+                              class="text-danger d-block">
+                        </span>
+
+                        <span asp-validation-for="Input.Longitude"
+                              class="text-danger d-block">
+                        </span>
+                    </div>
+
                 </div>
             </div>
 
-            <div class="form-check mb-3">
-                <input asp-for="Input.IsPrivado"
-                       class="form-check-input" />
+            <div class="d-flex gap-2">
+                <button type="submit"
+                        class="btn btn-primary">
+                    Guardar alterações
+                </button>
 
-                <label asp-for="Input.IsPrivado"
-                       class="form-check-label">
-                </label>
+                <a asp-page="./Details"
+                   asp-route-id="@Model.Input.Id"
+                   class="btn btn-secondary">
+                    Cancelar
+                </a>
             </div>
-
-            <button type="submit"
-                    class="btn btn-primary">
-                Guardar alterações
-            </button>
-
-            <a asp-page="./Details"
-               asp-route-id="@Model.Input.Id"
-               class="btn btn-secondary">
-                Cancelar
-            </a>
 
         </form>
     </div>
@@ -147,4 +252,111 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            crossorigin="">
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const separadorDecimal =
+                "@CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator";
+
+            const temCoordenadas =
+                @temCoordenadas.ToString().ToLowerInvariant();
+
+            const latitudeInicial = @latitudeInicial;
+            const longitudeInicial = @longitudeInicial;
+
+            const latitudeInput =
+                document.getElementById("latitude");
+
+            const longitudeInput =
+                document.getElementById("longitude");
+
+            const coordenadasTexto =
+                document.getElementById("coordenadasSelecionadas");
+
+            const limparBotao =
+                document.getElementById("limparLocalizacao");
+
+            const mapa = L.map("mapa").setView(
+                [latitudeInicial, longitudeInicial],
+                temCoordenadas ? 15 : 7
+            );
+
+            L.tileLayer(
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+                    maxZoom: 19,
+                    attribution:
+                        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                }
+            ).addTo(mapa);
+
+            let marcador = null;
+
+            function formatarNumeroParaServidor(valor) {
+                return valor
+                    .toFixed(6)
+                    .replace(".", separadorDecimal);
+            }
+
+            function atualizarLocalizacao(latitude, longitude) {
+                latitudeInput.value =
+                    formatarNumeroParaServidor(latitude);
+
+                longitudeInput.value =
+                    formatarNumeroParaServidor(longitude);
+
+                coordenadasTexto.textContent =
+                    `Latitude: ${latitude.toLocaleString("pt-PT", {
+                        minimumFractionDigits: 6,
+                        maximumFractionDigits: 6
+                    })} | Longitude: ${longitude.toLocaleString("pt-PT", {
+                        minimumFractionDigits: 6,
+                        maximumFractionDigits: 6
+                    })}`;
+
+                if (marcador === null) {
+                    marcador = L.marker(
+                        [latitude, longitude]
+                    ).addTo(mapa);
+                }
+                else
+                {
+                    marcador.setLatLng(
+                        [latitude, longitude]
+                    );
+                }
+            }
+
+            if (temCoordenadas) {
+                atualizarLocalizacao(
+                    latitudeInicial,
+                    longitudeInicial
+                );
+            }
+
+            mapa.on("click", function (evento) {
+                atualizarLocalizacao(
+                    evento.latlng.lat,
+                    evento.latlng.lng
+                );
+            });
+
+            limparBotao.addEventListener("click", function () {
+                latitudeInput.value = "";
+                longitudeInput.value = "";
+
+                coordenadasTexto.textContent =
+                    "Nenhuma localização selecionada.";
+
+                if (marcador !== null) {
+                    mapa.removeLayer(marcador);
+                    marcador = null;
+                }
+            });
+        });
+    </script>
 }

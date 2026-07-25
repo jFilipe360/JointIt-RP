@@ -47,10 +47,28 @@ namespace JoinIt.Web.Pages.Eventos
             [Display(Name = "Descrição")]
             public string Descricao { get; set; } = string.Empty;
 
-            [Required(ErrorMessage = "A data e hora são obrigatórias.")]
-            [Display(Name = "Data e hora")]
+            [Required(ErrorMessage = "A data e hora de início são obrigatórias.")]
+            [Display(Name = "Data e hora de início")]
             public DateTime DataHora { get; set; }
                 = DateTime.Now.AddDays(1);
+
+            [Required(ErrorMessage = "A data e hora de fim são obrigatórias.")]
+            [Display(Name = "Data e hora de fim")]
+            public DateTime DataFim { get; set; }
+                = DateTime.Now.AddDays(1).AddHours(2);
+
+            [Required(ErrorMessage = "O local é obrigatório.")]
+            [StringLength(
+                150,
+                ErrorMessage = "O local não pode ultrapassar 150 caracteres.")]
+            [Display(Name = "Local")]
+            public string Local { get; set; } = string.Empty;
+
+            [StringLength(
+                250,
+                ErrorMessage = "A morada não pode ultrapassar 250 caracteres.")]
+            [Display(Name = "Morada")]
+            public string? Morada { get; set; }
 
             [Range(
                 2,
@@ -62,9 +80,17 @@ namespace JoinIt.Web.Pages.Eventos
             [Display(Name = "Evento privado")]
             public bool IsPrivado { get; set; }
 
+            [Range(
+                -90,
+                90,
+                ErrorMessage = "A latitude deve estar entre -90 e 90.")]
             [Display(Name = "Latitude")]
             public double? Latitude { get; set; }
 
+            [Range(
+                -180,
+                180,
+                ErrorMessage = "A longitude deve estar entre -180 e 180.")]
             [Display(Name = "Longitude")]
             public double? Longitude { get; set; }
 
@@ -82,12 +108,8 @@ namespace JoinIt.Web.Pages.Eventos
 
         public async Task<IActionResult> OnPostAsync()
         {
-            if (Input.DataHora <= DateTime.Now)
-            {
-                ModelState.AddModelError(
-                    "Input.DataHora",
-                    "A data do evento deve ser futura.");
-            }
+            ValidarDatas();
+            ValidarCoordenadas();
 
             List<int> categoriasSelecionadas = Input
                 .CategoriasSelecionadas
@@ -109,6 +131,7 @@ namespace JoinIt.Web.Pages.Eventos
             if (!ModelState.IsValid)
             {
                 await CarregarCategoriasAsync();
+
                 return Page();
             }
 
@@ -124,6 +147,11 @@ namespace JoinIt.Web.Pages.Eventos
                 Titulo = Input.Titulo.Trim(),
                 Descricao = Input.Descricao.Trim(),
                 DataHora = Input.DataHora,
+                DataFim = Input.DataFim,
+                Local = Input.Local.Trim(),
+                Morada = string.IsNullOrWhiteSpace(Input.Morada)
+                    ? null
+                    : Input.Morada.Trim(),
                 NumMaxParticipantes = Input.NumMaxParticipantes,
                 IsPrivado = Input.IsPrivado,
                 Latitude = Input.Latitude,
@@ -140,7 +168,7 @@ namespace JoinIt.Web.Pages.Eventos
                 });
             }
 
-            // O criador entra automaticamente como participante do evento.
+            // O criador participa automaticamente no evento.
             evento.Participantes.Add(new Participante
             {
                 UtilizadorId = utilizadorId,
@@ -154,7 +182,44 @@ namespace JoinIt.Web.Pages.Eventos
             TempData["MensagemSucesso"] =
                 "O evento foi criado com sucesso.";
 
-            return RedirectToPage("./Index");
+            return RedirectToPage("./Details", new
+            {
+                id = evento.Id
+            });
+        }
+
+        private void ValidarDatas()
+        {
+            if (Input.DataHora <= DateTime.Now)
+            {
+                ModelState.AddModelError(
+                    "Input.DataHora",
+                    "A data de início deve ser futura.");
+            }
+
+            if (Input.DataFim <= Input.DataHora)
+            {
+                ModelState.AddModelError(
+                    "Input.DataFim",
+                    "A data de fim deve ser posterior à data de início.");
+            }
+        }
+
+        private void ValidarCoordenadas()
+        {
+            bool temLatitude = Input.Latitude.HasValue;
+            bool temLongitude = Input.Longitude.HasValue;
+
+            if (temLatitude != temLongitude)
+            {
+                ModelState.AddModelError(
+                    "Input.Latitude",
+                    "Seleciona uma localização completa no mapa.");
+
+                ModelState.AddModelError(
+                    "Input.Longitude",
+                    "Seleciona uma localização completa no mapa.");
+            }
         }
 
         private async Task CarregarCategoriasAsync()

@@ -1,5 +1,7 @@
 using JoinIt.Web.Data;
+using JoinIt.Web.Enums;
 using JoinIt.Web.Models;
+using JoinIt.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -15,13 +17,16 @@ namespace JoinIt.Web.Pages.Eventos
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IEstadoEventoService _estadoEventoService;
 
         public EditModel(
             ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            IEstadoEventoService estadoEventoService)
         {
             _context = context;
             _userManager = userManager;
+            _estadoEventoService = estadoEventoService;
         }
 
         [BindProperty]
@@ -48,9 +53,26 @@ namespace JoinIt.Web.Pages.Eventos
             [Display(Name = "Descrição")]
             public string Descricao { get; set; } = string.Empty;
 
-            [Required(ErrorMessage = "A data e hora são obrigatórias.")]
-            [Display(Name = "Data e hora")]
+            [Required(ErrorMessage = "A data e hora de início são obrigatórias.")]
+            [Display(Name = "Data e hora de início")]
             public DateTime DataHora { get; set; }
+
+            [Required(ErrorMessage = "A data e hora de fim são obrigatórias.")]
+            [Display(Name = "Data e hora de fim")]
+            public DateTime DataFim { get; set; }
+
+            [Required(ErrorMessage = "O local é obrigatório.")]
+            [StringLength(
+                150,
+                ErrorMessage = "O local não pode ultrapassar 150 caracteres.")]
+            [Display(Name = "Local")]
+            public string Local { get; set; } = string.Empty;
+
+            [StringLength(
+                250,
+                ErrorMessage = "A morada não pode ultrapassar 250 caracteres.")]
+            [Display(Name = "Morada")]
+            public string? Morada { get; set; }
 
             [Range(
                 2,
@@ -62,9 +84,17 @@ namespace JoinIt.Web.Pages.Eventos
             [Display(Name = "Evento privado")]
             public bool IsPrivado { get; set; }
 
+            [Range(
+                -90,
+                90,
+                ErrorMessage = "A latitude deve estar entre -90 e 90.")]
             [Display(Name = "Latitude")]
             public double? Latitude { get; set; }
 
+            [Range(
+                -180,
+                180,
+                ErrorMessage = "A longitude deve estar entre -180 e 180.")]
             [Display(Name = "Longitude")]
             public double? Longitude { get; set; }
 
@@ -80,6 +110,8 @@ namespace JoinIt.Web.Pages.Eventos
             {
                 return Challenge();
             }
+
+            await _estadoEventoService.AtualizarEstadosAsync();
 
             var evento = await _context.Eventos
                 .AsNoTracking()
@@ -97,12 +129,35 @@ namespace JoinIt.Web.Pages.Eventos
                 return Forbid();
             }
 
+            if (evento.Estado == EstadoEvento.Cancelado)
+            {
+                TempData["MensagemErro"] =
+                    "Não é possível editar um evento cancelado.";
+
+                return RedirectToPage(
+                    "./Details",
+                    new { id = evento.Id });
+            }
+
+            if (evento.Estado == EstadoEvento.Terminado)
+            {
+                TempData["MensagemErro"] =
+                    "Não é possível editar um evento terminado.";
+
+                return RedirectToPage(
+                    "./Details",
+                    new { id = evento.Id });
+            }
+
             Input = new EventoInputModel
             {
                 Id = evento.Id,
                 Titulo = evento.Titulo,
                 Descricao = evento.Descricao,
                 DataHora = evento.DataHora,
+                DataFim = evento.DataFim,
+                Local = evento.Local,
+                Morada = evento.Morada,
                 NumMaxParticipantes = evento.NumMaxParticipantes,
                 IsPrivado = evento.IsPrivado,
                 Latitude = evento.Latitude,
@@ -126,8 +181,11 @@ namespace JoinIt.Web.Pages.Eventos
                 return Challenge();
             }
 
+            await _estadoEventoService.AtualizarEstadosAsync();
+
             var evento = await _context.Eventos
                 .Include(e => e.EventosCategorias)
+                .Include(e => e.Participantes)
                 .FirstOrDefaultAsync(e => e.Id == Input.Id);
 
             if (evento is null)
@@ -141,12 +199,28 @@ namespace JoinIt.Web.Pages.Eventos
                 return Forbid();
             }
 
-            if (Input.DataHora <= DateTime.Now)
+            if (evento.Estado == EstadoEvento.Cancelado)
             {
-                ModelState.AddModelError(
-                    "Input.DataHora",
-                    "A data do evento deve ser futura.");
+                TempData["MensagemErro"] =
+                    "Não é possível editar um evento cancelado.";
+
+                return RedirectToPage(
+                    "./Details",
+                    new { id = evento.Id });
             }
+
+            if (evento.Estado == EstadoEvento.Terminado)
+            {
+                TempData["MensagemErro"] =
+                    "Não é possível editar um evento terminado.";
+
+                return RedirectToPage(
+                    "./Details",
+                    new { id = evento.Id });
+            }
+
+            ValidarDatas();
+            ValidarCoordenadas();
 
             var categoriasSelecionadas = Input.CategoriasSelecionadas
                 .Distinct()
@@ -171,15 +245,36 @@ namespace JoinIt.Web.Pages.Eventos
                     "Uma das categorias selecionadas não é válida.");
             }
 
+            int numeroParticipantes = evento.Participantes.Count(p => p.Estado == EstadoPedido.Aceite);
+
+            if (Input.NumMaxParticipantes < numeroParticipantes)
+            {
+                ModelState.AddModelError(
+                    "Input.NumMaxParticipantes",
+                    $"A lotação não pode ser inferior aos {numeroParticipantes} participantes atuais.");
+            }
+
             if (!ModelState.IsValid)
             {
                 await CarregarCategoriasAsync();
+
                 return Page();
             }
 
             evento.Titulo = Input.Titulo.Trim();
             evento.Descricao = Input.Descricao.Trim();
             evento.DataHora = Input.DataHora;
+            evento.DataFim = Input.DataFim;
+            evento.Estado = _estadoEventoService.CalcularEstado(
+                evento.DataHora,
+                evento.DataFim,
+                evento.Estado);
+            evento.Local = Input.Local.Trim();
+
+            evento.Morada = string.IsNullOrWhiteSpace(Input.Morada)
+                ? null
+                : Input.Morada.Trim();
+
             evento.NumMaxParticipantes = Input.NumMaxParticipantes;
             evento.IsPrivado = Input.IsPrivado;
             evento.Latitude = Input.Latitude;
@@ -195,6 +290,40 @@ namespace JoinIt.Web.Pages.Eventos
             return RedirectToPage(
                 "./Details",
                 new { id = evento.Id });
+        }
+
+        private void ValidarDatas()
+        {
+            if (Input.DataHora <= DateTime.Now)
+            {
+                ModelState.AddModelError(
+                    "Input.DataHora",
+                    "A data de início deve ser futura.");
+            }
+
+            if (Input.DataFim <= Input.DataHora)
+            {
+                ModelState.AddModelError(
+                    "Input.DataFim",
+                    "A data de fim deve ser posterior à data de início.");
+            }
+        }
+
+        private void ValidarCoordenadas()
+        {
+            bool temLatitude = Input.Latitude.HasValue;
+            bool temLongitude = Input.Longitude.HasValue;
+
+            if (temLatitude != temLongitude)
+            {
+                ModelState.AddModelError(
+                    "Input.Latitude",
+                    "Seleciona uma localização completa no mapa.");
+
+                ModelState.AddModelError(
+                    "Input.Longitude",
+                    "Seleciona uma localização completa no mapa.");
+            }
         }
 
         private void AtualizarCategorias(
