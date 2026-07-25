@@ -1,5 +1,6 @@
 ﻿@page
 @using JoinIt.Web.Enums
+@using JoinIt.Web.ViewModels
 @model JoinIt.Web.Pages.Invites.IndexModel
 
 @{
@@ -41,9 +42,27 @@ else
     <div class="row mb-5">
         @foreach (var convite in Model.ConvitesPendentes)
         {
+            var avatarEmissor = new AvatarUtilizadorViewModel
+            {
+                Nome = convite.Emissor.Nome,
+                FotoPerfil = convite.Emissor.FotoPerfil,
+                Tamanho = 60
+            };
             <div class="col-md-6 col-lg-4 mb-4">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <partial name="_UserAvatar"
+                                     model="avatarEmissor" />
+
+                            <div class="text-start">
+                                <strong>@convite.Emissor.Nome</strong>
+
+                                <div class="text-muted small">
+                                    convidou-te para um evento
+                                </div>
+                            </div>
+                        </div>
                         <h5 class="card-title">
                             @convite.Evento.Titulo
                         </h5>
@@ -125,9 +144,25 @@ else
     <div class="row">
         @foreach (var convite in Model.HistoricoConvites)
         {
+            var avatarEmissor = new AvatarUtilizadorViewModel
+            {
+                Nome = convite.Emissor.Nome,
+                FotoPerfil = convite.Emissor.FotoPerfil,
+                Tamanho = 50
+            };
             <div class="col-md-6 col-lg-4 mb-4">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <partial name="_UserAvatar"
+                                     model="avatarEmissor" />
+
+                            <a asp-page="/Users/Details"
+                               asp-route-id="@convite.EmissorId"
+                               class="fw-bold text-decoration-none">
+                                @convite.Emissor.Nome
+                            </a>
+                        </div>
                         <h5 class="card-title">
                             @convite.Evento.Titulo
                         </h5>

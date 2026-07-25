@@ -1,5 +1,6 @@
 ﻿@page
 @model JoinIt.Web.Pages.Users.IndexModel
+@using JoinIt.Web.ViewModels
 
 @{
     ViewData["Title"] = "Utilizadores";
@@ -24,35 +25,21 @@ else
     <div class="row">
         @foreach (var utilizador in Model.Utilizadores)
         {
-            string inicial = string.IsNullOrWhiteSpace(utilizador.Nome)
-                ? "?"
-                : utilizador.Nome.Substring(0, 1).ToUpper();
+            var avatar = new AvatarUtilizadorViewModel
+            {
+                Nome = utilizador.Nome,
+                FotoPerfil = utilizador.FotoPerfil,
+                Tamanho = 90
+            };
 
             <div class="col-md-6 col-lg-4 mb-4">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body text-center">
 
-                        @if (string.IsNullOrWhiteSpace(
-                            utilizador.FotoPerfil))
-                        {
-                            <div class="rounded-circle bg-secondary text-white
-                                d-flex align-items-center justify-content-center
-                                mx-auto mb-3"
-                                 style="width: 90px; height: 90px;
-                                font-size: 2rem;">
-
-                                @inicial
-                            </div>
-                        }
-                        else
-                        {
-                            <img src="@utilizador.FotoPerfil"
-                                 alt="Foto de @utilizador.Nome"
-                                 class="rounded-circle mb-3"
-                                 style="width: 90px;
-                            height: 90px;
-                            object-fit: cover;" />
-                        }
+                        <div class="d-flex justify-content-center mb-3">
+                            <partial name="_UserAvatar"
+                                        model="avatar" />
+                        </div>
 
                         <h5 class="card-title">
                             @utilizador.Nome
@@ -64,8 +51,8 @@ else
                         </p>
 
                         <a asp-page="./Details"
-                           asp-route-id="@utilizador.Id"
-                           class="btn btn-outline-primary">
+                            asp-route-id="@utilizador.Id"
+                            class="btn btn-outline-primary">
                             Ver perfil
                         </a>
 

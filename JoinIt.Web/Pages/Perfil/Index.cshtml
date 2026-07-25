@@ -1,0 +1,139 @@
+﻿@page
+@using JoinIt.Web.ViewModels
+@model JoinIt.Web.Pages.Perfil.IndexModel
+
+@{
+    ViewData["Title"] = "O meu perfil";
+
+    var avatar = new AvatarUtilizadorViewModel
+    {
+        Nome = Model.Utilizador.Nome,
+        FotoPerfil = Model.Utilizador.FotoPerfil,
+        Tamanho = 150
+    };
+}
+
+@if (TempData["MensagemSucesso"] is string mensagemSucesso)
+{
+    <div class="alert alert-success">
+        @mensagemSucesso
+    </div>
+}
+
+@if (TempData["MensagemErro"] is string mensagemErro)
+{
+    <div class="alert alert-danger">
+        @mensagemErro
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>O meu perfil</h1>
+
+        <p class="text-muted mb-0">
+            Consulta e gere os teus dados pessoais.
+        </p>
+    </div>
+
+    <a asp-page="./Edit"
+       class="btn btn-primary">
+        Editar perfil
+    </a>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row align-items-center">
+
+            <div class="col-md-auto text-center mb-4 mb-md-0">
+                <partial name="_UserAvatar"
+                         model="avatar" />
+            </div>
+
+            <div class="col-md">
+                <h2 class="mb-3">
+                    @Model.Utilizador.Nome
+                </h2>
+
+                <dl class="row mb-0">
+                    <dt class="col-sm-3">
+                        Email
+                    </dt>
+
+                    <dd class="col-sm-9">
+                        @Model.Utilizador.Email
+                    </dd>
+
+                    <dt class="col-sm-3">
+                        Membro desde
+                    </dt>
+
+                    <dd class="col-sm-9">
+                        @Model.Utilizador.CriadoEm.ToString("dd/MM/yyyy")
+                    </dd>
+                </dl>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 shadow-sm text-center">
+            <div class="card-body">
+                <h3 class="display-6">
+                    @Model.NumeroAmigos
+                </h3>
+
+                <p class="text-muted mb-3">
+                    Amigos
+                </p>
+
+                <a asp-page="/Amigos/Index"
+                   class="btn btn-outline-primary">
+                    Ver amizades
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 shadow-sm text-center">
+            <div class="card-body">
+                <h3 class="display-6">
+                    @Model.NumeroEventosCriados
+                </h3>
+
+                <p class="text-muted mb-3">
+                    Eventos criados
+                </p>
+
+                <a asp-page="/Eventos/MyEvents"
+                   class="btn btn-outline-primary">
+                    Ver eventos
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 shadow-sm text-center">
+            <div class="card-body">
+                <h3 class="display-6">
+                    @Model.NumeroEventosParticipados
+                </h3>
+
+                <p class="text-muted mb-3">
+                    Eventos participados
+                </p>
+
+                <a asp-page="/Eventos/MyEvents"
+                   class="btn btn-outline-primary">
+                    Ver participações
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

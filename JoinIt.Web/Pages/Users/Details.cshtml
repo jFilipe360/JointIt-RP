@@ -1,13 +1,17 @@
 ﻿@page
 @using JoinIt.Web.Enums
+@using JoinIt.Web.ViewModels
 @model JoinIt.Web.Pages.Users.DetailsModel
 
 @{
     ViewData["Title"] = "Perfil";
 
-    string inicial = string.IsNullOrWhiteSpace(Model.Utilizador.Nome)
-        ? "?"
-        : Model.Utilizador.Nome.Substring(0, 1).ToUpper();
+    var avatar = new AvatarUtilizadorViewModel
+    {
+        Nome = Model.Utilizador.Nome,
+        FotoPerfil = Model.Utilizador.FotoPerfil,
+        Tamanho = 130
+    };
 }
 
 @if (TempData["MensagemSucesso"] is string mensagemSucesso)
@@ -29,28 +33,10 @@
         <div class="row align-items-center">
 
             <div class="col-md-auto text-center mb-3 mb-md-0">
-                @if (string.IsNullOrWhiteSpace(
-                    Model.Utilizador.FotoPerfil))
-                {
-                    <div class="rounded-circle bg-secondary text-white
-                        d-flex align-items-center justify-content-center
-                        mx-auto"
-                         style="width: 130px;
-                        height: 130px;
-                        font-size: 3rem;">
-
-                        @inicial
-                    </div>
-                }
-                else
-                {
-                    <img src="@Model.Utilizador.FotoPerfil"
-                         alt="Foto de @Model.Utilizador.Nome"
-                         class="rounded-circle"
-                         style="width: 130px;
-                    height: 130px;
-                    object-fit: cover;" />
-                }
+                <div class="d-flex justify-content-center">
+                    <partial name="_UserAvatar"
+                             model="avatar" />
+                </div>
             </div>
 
             <div class="col-md">

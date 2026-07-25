@@ -99,15 +99,33 @@
                                     p.Utilizador.Nome))
                         {
                             <li class="list-group-item px-0">
-                                @participante.Utilizador.Nome
+                                <div class="d-flex align-items-center gap-3">
 
-                                @if (participante.UtilizadorId ==
-                                     Model.Evento.CriadorId)
-                                {
-                                    <span class="badge bg-primary ms-2">
-                                        Criador
-                                    </span>
-                                }
+                                    <partial name="_UserAvatar"
+                                             model="new JoinIt.Web.ViewModels.AvatarUtilizadorViewModel
+                                             {
+                                                 Nome = participante.Utilizador.Nome,
+                                                 FotoPerfil = participante.Utilizador.FotoPerfil,
+                                                 Tamanho = 42
+                                             }" />
+
+                                    <div>
+                                        <a asp-page="/Users/Details"
+                                           asp-route-id="@participante.UtilizadorId"
+                                           class="text-decoration-none">
+                                            @participante.Utilizador.Nome
+                                        </a>
+
+                                        @if (participante.UtilizadorId ==
+                                             Model.Evento.CriadorId)
+                                        {
+                                            <span class="badge bg-primary ms-2">
+                                                Criador
+                                            </span>
+                                        }
+                                    </div>
+
+                                </div>
                             </li>
                         }
                     </ul>

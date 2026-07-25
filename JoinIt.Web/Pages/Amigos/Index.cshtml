@@ -1,4 +1,5 @@
 ﻿@page
+@using JoinIt.Web.ViewModels
 @model JoinIt.Web.Pages.Friends.IndexModel
 
 @{
@@ -38,36 +39,21 @@ else
     <div class="row mb-5">
         @foreach (var pedido in Model.PedidosRecebidos)
         {
-            string inicial =
-                string.IsNullOrWhiteSpace(pedido.Emissor.Nome)
-                    ? "?"
-                    : pedido.Emissor.Nome[..1].ToUpper();
+            var avatarEmissor = new AvatarUtilizadorViewModel
+            {
+                Nome = pedido.Emissor.Nome,
+                FotoPerfil = pedido.Emissor.FotoPerfil,
+                Tamanho = 80
+            };
 
             <div class="col-md-6 col-lg-4 mb-3">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body text-center">
 
-                        @if (string.IsNullOrWhiteSpace(
-                            pedido.Emissor.FotoPerfil))
-                        {
-                            <div class="rounded-circle bg-secondary text-white
-                                        d-flex align-items-center justify-content-center
-                                        mx-auto mb-3"
-                                 style="width: 80px;
-                                        height: 80px;
-                                        font-size: 1.8rem;">
-                                @inicial
-                            </div>
-                        }
-                        else
-                        {
-                            <img src="@pedido.Emissor.FotoPerfil"
-                                 alt="Foto de @pedido.Emissor.Nome"
-                                 class="rounded-circle mb-3"
-                                 style="width: 80px;
-                                        height: 80px;
-                                        object-fit: cover;" />
-                        }
+                        <div class="d-flex justify-content-center mb-3">
+                            <partial name="_UserAvatar"
+                                     model="avatarEmissor" />
+                        </div>
 
                         <h5>@pedido.Emissor.Nome</h5>
 
@@ -124,9 +110,19 @@ else
     <div class="row mb-5">
         @foreach (var pedido in Model.PedidosEnviados)
         {
+            var avatarRecetor = new AvatarUtilizadorViewModel
+            {
+                Nome = pedido.Recetor.Nome,
+                FotoPerfil = pedido.Recetor.FotoPerfil,
+                Tamanho = 70
+            };
             <div class="col-md-6 col-lg-4 mb-3">
                 <div class="card h-100 shadow-sm">
-                    <div class="card-body">
+                    <div class="card-body text-center">
+                        <div class="d-flex justify-content-center mb-3">
+                            <partial name="_UserAvatar"
+                                     model="avatarRecetor" />
+                        </div>
 
                         <h5 class="card-title">
                             @pedido.Recetor.Nome
@@ -179,36 +175,21 @@ else
     <div class="row">
         @foreach (var amizade in Model.Amigos)
         {
-            string inicial =
-                string.IsNullOrWhiteSpace(amizade.Utilizador.Nome)
-                    ? "?"
-                    : amizade.Utilizador.Nome[..1].ToUpper();
+            var avatarAmigo = new AvatarUtilizadorViewModel
+            {
+                Nome = amizade.Utilizador.Nome,
+                FotoPerfil = amizade.Utilizador.FotoPerfil,
+                Tamanho = 80
+            };
 
             <div class="col-md-6 col-lg-4 mb-3">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body text-center">
 
-                        @if (string.IsNullOrWhiteSpace(
-                            amizade.Utilizador.FotoPerfil))
-                        {
-                            <div class="rounded-circle bg-secondary text-white
-                                        d-flex align-items-center justify-content-center
-                                        mx-auto mb-3"
-                                 style="width: 80px;
-                                        height: 80px;
-                                        font-size: 1.8rem;">
-                                @inicial
-                            </div>
-                        }
-                        else
-                        {
-                            <img src="@amizade.Utilizador.FotoPerfil"
-                                 alt="Foto de @amizade.Utilizador.Nome"
-                                 class="rounded-circle mb-3"
-                                 style="width: 80px;
-                                        height: 80px;
-                                        object-fit: cover;" />
-                        }
+                        <div class="d-flex justify-content-center mb-3">
+                            <partial name="_UserAvatar"
+                                     model="avatarAmigo" />
+                        </div>
 
                         <h5>@amizade.Utilizador.Nome</h5>
 

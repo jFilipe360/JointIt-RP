@@ -1,5 +1,6 @@
 ﻿@page
 @using JoinIt.Web.Enums
+@using JoinIt.Web.ViewModels
 @model JoinIt.Web.Pages.Eventos.InviteModel
 
 @{
@@ -69,36 +70,21 @@ else
     <div class="row">
         @foreach (var amigo in Model.Amigos)
         {
-            string inicial =
-                string.IsNullOrWhiteSpace(amigo.Utilizador.Nome)
-                    ? "?"
-                    : amigo.Utilizador.Nome[..1].ToUpper();
+            var avatarAmigo = new AvatarUtilizadorViewModel
+            {
+                Nome = amigo.Utilizador.Nome,
+                FotoPerfil = amigo.Utilizador.FotoPerfil,
+                Tamanho = 80
+            };
 
             <div class="col-md-6 col-lg-4 mb-4">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body text-center">
 
-                        @if (string.IsNullOrWhiteSpace(
-                            amigo.Utilizador.FotoPerfil))
-                        {
-                            <div class="rounded-circle bg-secondary text-white
-                                        d-flex align-items-center justify-content-center
-                                        mx-auto mb-3"
-                                 style="width: 80px;
-                                        height: 80px;
-                                        font-size: 1.8rem;">
-                                @inicial
-                            </div>
-                        }
-                        else
-                        {
-                            <img src="@amigo.Utilizador.FotoPerfil"
-                                 alt="Foto de @amigo.Utilizador.Nome"
-                                 class="rounded-circle mb-3"
-                                 style="width: 80px;
-                                        height: 80px;
-                                        object-fit: cover;" />
-                        }
+                        <div class="d-flex justify-content-center mb-3">
+                            <partial name="_UserAvatar"
+                                     model="avatarAmigo" />
+                        </div>
 
                         <h5 class="card-title">
                             @amigo.Utilizador.Nome
