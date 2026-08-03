@@ -1,4 +1,6 @@
 using JoinIt.Web.Data;
+using JoinIt.Web.Enums;
+using JoinIt.Web.Hubs;
 using JoinIt.Web.Models;
 using JoinIt.Web.Services;
 using Microsoft.AspNetCore.Identity;
@@ -27,6 +29,8 @@ builder.Services.AddScoped<
     IEstadoEventoService,
     EstadoEventoService>();
 
+builder.Services.AddSignalR();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -50,6 +54,8 @@ app.UseAuthorization();
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
+
+app.MapHub<ChatHub>("/hubs/chat");
 
 using (var scope = app.Services.CreateScope())
 {

@@ -348,6 +348,15 @@
         Voltar aos eventos
     </a>
 
+    @if (Model.PodeGerir || Model.EstaAParticipar)
+    {
+        <a asp-page="./Chat"
+           asp-route-id="@Model.Evento.Id"
+           class="btn btn-info">
+            Abrir chat
+        </a>
+    }
+
     @if (Model.PodeGerir)
     {
         @if (Model.Evento.Estado != EstadoEvento.Cancelado &&

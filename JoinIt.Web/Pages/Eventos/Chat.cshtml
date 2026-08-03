@@ -1,0 +1,860 @@
+﻿@page
+@using JoinIt.Web.Enums
+@using JoinIt.Web.ViewModels
+@using System.Text.Json
+@model JoinIt.Web.Pages.Eventos.ChatModel
+
+@{
+    ViewData["Title"] = $"Chat - {Model.Evento.Titulo}";
+
+    string nomeEstado = Model.Evento.Estado switch
+    {
+        EstadoEvento.ParaBreve => "Para breve",
+        EstadoEvento.ADecorrer => "A decorrer",
+        EstadoEvento.Terminado => "Terminado",
+        EstadoEvento.Cancelado => "Cancelado",
+        _ => Model.Evento.Estado.ToString()
+    };
+
+    string classeEstado = Model.Evento.Estado switch
+    {
+        EstadoEvento.ParaBreve => "bg-primary",
+        EstadoEvento.ADecorrer => "bg-success",
+        EstadoEvento.Terminado => "bg-secondary",
+        EstadoEvento.Cancelado => "bg-danger",
+        _ => "bg-secondary"
+    };
+}
+
+<style>
+    .chat-message-line {
+        display: flex;
+        gap: 0.5rem;
+        width: fit-content;
+        max-width: 80%;
+        min-width: 0;
+    }
+
+    .chat-message-bubble {
+        display: inline-block;
+        width: fit-content;
+        max-width: calc(100% - 46px);
+        min-width: 0;
+        flex: 0 1 auto;
+    }
+
+    .chat-message-content {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .chat-message-date {
+        white-space: nowrap;
+    }
+
+    .online-indicator {
+        width: 10px;
+        height: 10px;
+        flex-shrink: 0;
+    }
+
+    .presence-notice {
+        animation: presence-fade 4s forwards;
+    }
+
+    @@keyframes presence-fade {
+        0% {
+            opacity: 0;
+        }
+
+        10% {
+            opacity: 1;
+        }
+
+        80% {
+            opacity: 1;
+        }
+
+        100% {
+            opacity: 0;
+        }
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+        <h1>Chat do evento</h1>
+
+        <h2 class="h4 mb-1">
+            @Model.Evento.Titulo
+        </h2>
+
+        <p class="text-muted mb-0">
+            Criado por @Model.Evento.Criador.Nome
+        </p>
+    </div>
+
+    <div class="d-flex flex-column align-items-end gap-2">
+        <span class="badge @classeEstado fs-6">
+            @nomeEstado
+        </span>
+
+        <span id="estadoLigacao"
+              class="badge bg-secondary">
+            A ligar...
+        </span>
+    </div>
+</div>
+
+@if (!Model.PodeEnviar)
+{
+    <div class="alert alert-warning">
+        Este chat está em modo de leitura porque o evento
+        terminou ou foi cancelado.
+    </div>
+}
+
+<div id="alertaChat"
+     class="alert alert-danger d-none">
+</div>
+
+<div id="avisosPresenca">
+</div>
+
+<div class="row">
+    <div class="col-lg-9">
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between
+                align-items-center">
+
+                <strong>Mensagens</strong>
+
+                <span class="text-muted small">
+                    Últimas 50 mensagens
+                </span>
+            </div>
+
+            <div id="mensagensChat"
+                 class="card-body overflow-auto"
+                 style="height: 500px;">
+
+                @if (Model.Mensagens.Count == 0)
+                {
+                    <div id="semMensagens"
+                         class="text-center text-muted py-5">
+
+                        Ainda não existem mensagens neste evento.
+                    </div>
+                }
+                else
+                {
+                    @foreach (var mensagem in Model.Mensagens)
+                    {
+                        bool mensagemPropria =
+                            mensagem.UtilizadorId ==
+                            Model.UtilizadorAtualId;
+
+                        var avatar = new AvatarUtilizadorViewModel
+                        {
+                            Nome = mensagem.Utilizador.Nome,
+                            FotoPerfil = mensagem.Utilizador.FotoPerfil,
+                            Tamanho = 38
+                        };
+
+                        <div class="d-flex mb-3
+                            @(mensagemPropria
+                                ? "justify-content-end"
+                                : "justify-content-start")">
+
+                            <div class="chat-message-line
+                                @(mensagemPropria
+                                    ? "flex-row-reverse"
+                                    : "")">
+
+                                <partial name="_UserAvatar"
+                                         model="avatar" />
+
+                                <div class="chat-message-bubble
+                                    border rounded px-3 py-2
+                                    @(mensagemPropria
+                                        ? "bg-primary text-white"
+                                        : "bg-light")">
+
+                                    <div class="fw-bold small mb-1">
+                                        @mensagem.Utilizador.Nome
+                                    </div>
+
+                                    <div class="chat-message-content">@mensagem.Conteudo</div>
+
+                                    <div class="chat-message-date small mt-1
+                                        @(mensagemPropria
+                                            ? "text-white-50"
+                                            : "text-muted")">
+
+                                        @mensagem.EnviadaEm.ToString(
+                                            "dd/MM/yyyy HH:mm")
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+
+            @if (Model.PodeEnviar)
+            {
+                <div class="card-footer">
+                    <form id="formMensagem">
+
+                        <label for="conteudoMensagem"
+                               class="form-label">
+                            Mensagem
+                        </label>
+
+                        <textarea id="conteudoMensagem"
+                                  class="form-control mb-2"
+                                  rows="3"
+                                  maxlength="500"
+                                  placeholder="Escreve uma mensagem..."
+                                  disabled></textarea>
+
+                        <div class="d-flex justify-content-between
+                            align-items-center gap-3">
+
+                            <span id="contadorCaracteres"
+                                  class="text-muted small">
+                                0 / 500
+                            </span>
+
+                            <button type="submit"
+                                    id="botaoEnviar"
+                                    class="btn btn-primary"
+                                    disabled>
+                                Enviar
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            }
+        </div>
+
+    </div>
+
+    <div class="col-lg-3">
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between
+                align-items-center">
+
+                <strong>Online</strong>
+
+                <span id="contadorLigados"
+                      class="badge bg-success">
+                    0
+                </span>
+            </div>
+
+            <div class="card-body">
+                <div id="listaUtilizadoresLigados"
+                     class="d-flex flex-column gap-3">
+
+                    <p id="semUtilizadoresLigados"
+                       class="text-muted small mb-0">
+
+                        A carregar utilizadores...
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="d-flex gap-2">
+    <a asp-page="./Details"
+       asp-route-id="@Model.Evento.Id"
+       class="btn btn-secondary">
+        Voltar ao evento
+    </a>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@10.0.0/dist/browser/signalr.min.js">
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const eventoId = @Model.Evento.Id;
+
+            const utilizadorAtualId =
+                @Html.Raw(JsonSerializer.Serialize(
+                        Model.UtilizadorAtualId));
+
+            const podeEnviar =
+                @Model.PodeEnviar.ToString().ToLowerInvariant();
+
+            const mensagensChat =
+                document.getElementById("mensagensChat");
+
+            const estadoLigacao =
+                document.getElementById("estadoLigacao");
+
+            const alertaChat =
+                document.getElementById("alertaChat");
+
+            const avisosPresenca =
+                document.getElementById("avisosPresenca");
+
+            const listaUtilizadoresLigados =
+                document.getElementById(
+                    "listaUtilizadoresLigados");
+
+            const contadorLigados =
+                document.getElementById("contadorLigados");
+
+            const formulario =
+                document.getElementById("formMensagem");
+
+            const conteudoInput =
+                document.getElementById("conteudoMensagem");
+
+            const botaoEnviar =
+                document.getElementById("botaoEnviar");
+
+            const contadorCaracteres =
+                document.getElementById("contadorCaracteres");
+
+            let permitirNovasTentativas = true;
+            let temporizadorLigacao = null;
+
+            const connection =
+                new signalR.HubConnectionBuilder()
+                    .withUrl("/hubs/chat")
+                    .withAutomaticReconnect()
+                    .build();
+
+            function atualizarEstadoLigacao(
+                texto,
+                classeBootstrap) {
+
+                estadoLigacao.textContent = texto;
+
+                estadoLigacao.className =
+                    `badge ${classeBootstrap}`;
+            }
+
+            function mostrarErro(mensagem) {
+                alertaChat.textContent = mensagem;
+                alertaChat.classList.remove("d-none");
+            }
+
+            function esconderErro() {
+                alertaChat.textContent = "";
+                alertaChat.classList.add("d-none");
+            }
+
+            function atualizarFormulario() {
+                if (!podeEnviar ||
+                    conteudoInput === null ||
+                    botaoEnviar === null) {
+
+                    return;
+                }
+
+                const ligado =
+                    connection.state ===
+                    signalR.HubConnectionState.Connected;
+
+                conteudoInput.disabled = !ligado;
+
+                botaoEnviar.disabled =
+                    !ligado ||
+                    conteudoInput.value.trim().length === 0;
+            }
+
+            function atualizarContadorCaracteres() {
+                if (conteudoInput === null ||
+                    contadorCaracteres === null) {
+
+                    return;
+                }
+
+                contadorCaracteres.textContent =
+                    `${conteudoInput.value.length} / 500`;
+            }
+
+            function formatarData(dataOriginal) {
+                const data = new Date(dataOriginal);
+
+                if (Number.isNaN(data.getTime())) {
+                    return dataOriginal;
+                }
+
+                const dia = String(
+                    data.getDate()
+                ).padStart(2, "0");
+
+                const mes = String(
+                    data.getMonth() + 1
+                ).padStart(2, "0");
+
+                const ano = data.getFullYear();
+
+                const horas = String(
+                    data.getHours()
+                ).padStart(2, "0");
+
+                const minutos = String(
+                    data.getMinutes()
+                ).padStart(2, "0");
+
+                return `${dia}/${mes}/${ano} ${horas}:${minutos}`;
+            }
+
+            function criarAvatar(nome, fotoPerfil) {
+                if (fotoPerfil) {
+                    const imagem =
+                        document.createElement("img");
+
+                    imagem.src = fotoPerfil;
+                    imagem.alt = `Fotografia de ${nome}`;
+
+                    imagem.className =
+                        "rounded-circle";
+
+                    imagem.style.width = "38px";
+                    imagem.style.height = "38px";
+                    imagem.style.objectFit = "cover";
+                    imagem.style.flexShrink = "0";
+
+                    return imagem;
+                }
+
+                const avatar =
+                    document.createElement("span");
+
+                avatar.className =
+                    "rounded-circle bg-secondary text-white " +
+                    "d-inline-flex align-items-center " +
+                    "justify-content-center";
+
+                avatar.style.width = "38px";
+                avatar.style.height = "38px";
+                avatar.style.flexShrink = "0";
+
+                avatar.textContent =
+                    nome && nome.trim().length > 0
+                        ? nome.trim()[0].toUpperCase()
+                        : "?";
+
+                return avatar;
+            }
+
+            function adicionarMensagem(dados) {
+                const mensagemPropria =
+                    dados.utilizadorId === utilizadorAtualId;
+
+                const contentorExterior =
+                    document.createElement("div");
+
+                contentorExterior.className =
+                    "d-flex mb-3 " +
+                    (
+                        mensagemPropria
+                            ? "justify-content-end"
+                            : "justify-content-start"
+                    );
+
+                const linha =
+                    document.createElement("div");
+
+                linha.className =
+                    "chat-message-line " +
+                    (
+                        mensagemPropria
+                            ? "flex-row-reverse"
+                            : ""
+                    );
+
+                const avatar = criarAvatar(
+                    dados.nome,
+                    dados.fotoPerfil);
+
+                const balao =
+                    document.createElement("div");
+
+                balao.className =
+                    "chat-message-bubble " +
+                    "border rounded px-3 py-2 " +
+                    (
+                        mensagemPropria
+                            ? "bg-primary text-white"
+                            : "bg-light"
+                    );
+
+                const nome =
+                    document.createElement("div");
+
+                nome.className =
+                    "fw-bold small mb-1";
+
+                nome.textContent =
+                    dados.nome;
+
+                const conteudo =
+                    document.createElement("div");
+
+                conteudo.className =
+                    "chat-message-content";
+
+                // Impede que a mensagem seja interpretada como HTML.
+                conteudo.textContent =
+                    dados.conteudo;
+
+                const data =
+                    document.createElement("div");
+
+                data.className =
+                    "chat-message-date small mt-1 " +
+                    (
+                        mensagemPropria
+                            ? "text-white-50"
+                            : "text-muted"
+                    );
+
+                data.textContent =
+                    formatarData(dados.enviadaEm);
+
+                balao.appendChild(nome);
+                balao.appendChild(conteudo);
+                balao.appendChild(data);
+
+                linha.appendChild(avatar);
+                linha.appendChild(balao);
+
+                contentorExterior.appendChild(linha);
+
+                const semMensagensAtual =
+                    document.getElementById("semMensagens");
+
+                if (semMensagensAtual !== null) {
+                    semMensagensAtual.remove();
+                }
+
+                mensagensChat.appendChild(
+                    contentorExterior);
+
+                mensagensChat.scrollTop =
+                    mensagensChat.scrollHeight;
+            }
+
+            function atualizarUtilizadoresLigados(
+                utilizadores) {
+
+                listaUtilizadoresLigados.replaceChildren();
+
+                contadorLigados.textContent =
+                    utilizadores.length.toString();
+
+                if (utilizadores.length === 0) {
+                    const mensagem =
+                        document.createElement("p");
+
+                    mensagem.className =
+                        "text-muted small mb-0";
+
+                    mensagem.textContent =
+                        "Não existem utilizadores ligados.";
+
+                    listaUtilizadoresLigados.appendChild(
+                        mensagem);
+
+                    return;
+                }
+
+                utilizadores.forEach(function (utilizador) {
+                    const linha =
+                        document.createElement("div");
+
+                    linha.className =
+                        "d-flex align-items-center gap-2";
+
+                    const indicador =
+                        document.createElement("span");
+
+                    indicador.className =
+                        "online-indicator rounded-circle bg-success";
+
+                    const nome =
+                        document.createElement("span");
+
+                    nome.className =
+                        "text-break";
+
+                    nome.textContent =
+                        utilizador.nome;
+
+                    if (utilizador.utilizadorId ===
+                        utilizadorAtualId) {
+
+                        const proprio =
+                            document.createElement("span");
+
+                        proprio.className =
+                            "text-muted small ms-1";
+
+                        proprio.textContent =
+                            "(tu)";
+
+                        nome.appendChild(proprio);
+                    }
+
+                    linha.appendChild(indicador);
+                    linha.appendChild(nome);
+
+                    listaUtilizadoresLigados.appendChild(
+                        linha);
+                });
+            }
+
+            function mostrarAvisoPresenca(
+                nome,
+                entrou) {
+
+                const aviso =
+                    document.createElement("div");
+
+                aviso.className =
+                    "presence-notice alert py-2 " +
+                    (
+                        entrou
+                            ? "alert-success"
+                            : "alert-secondary"
+                    );
+
+                aviso.textContent =
+                    entrou
+                        ? `${nome} entrou no chat.`
+                        : `${nome} saiu do chat.`;
+
+                avisosPresenca.appendChild(aviso);
+
+                window.setTimeout(function () {
+                    aviso.remove();
+                }, 4000);
+            }
+
+            connection.on(
+                "ReceberMensagem",
+                function (dados) {
+                    adicionarMensagem(dados);
+                });
+
+            connection.on(
+                "AtualizarUtilizadoresLigados",
+                function (utilizadores) {
+                    atualizarUtilizadoresLigados(
+                        utilizadores);
+                });
+
+            connection.on(
+                "UtilizadorEntrou",
+                function (utilizador) {
+                    mostrarAvisoPresenca(
+                        utilizador.nome,
+                        true);
+                });
+
+            connection.on(
+                "UtilizadorSaiu",
+                function (utilizador) {
+                    mostrarAvisoPresenca(
+                        utilizador.nome,
+                        false);
+                });
+
+            connection.onreconnecting(function () {
+                atualizarEstadoLigacao(
+                    "A restabelecer...",
+                    "bg-warning text-dark");
+
+                atualizarFormulario();
+            });
+
+            connection.onreconnected(async function () {
+                try {
+                    await connection.invoke(
+                        "EntrarNoEvento",
+                        eventoId);
+
+                    atualizarEstadoLigacao(
+                        "Ligado",
+                        "bg-success");
+
+                    esconderErro();
+                }
+                catch (erro) {
+                    permitirNovasTentativas = false;
+
+                    mostrarErro(
+                        erro.message ??
+                        "Não foi possível voltar ao chat.");
+
+                    await connection.stop();
+                }
+
+                atualizarFormulario();
+            });
+
+            connection.onclose(function () {
+                atualizarEstadoLigacao(
+                    "Desligado",
+                    "bg-danger");
+
+                atualizarFormulario();
+
+                atualizarUtilizadoresLigados([]);
+
+                if (permitirNovasTentativas) {
+                    agendarNovaLigacao();
+                }
+            });
+
+            function agendarNovaLigacao() {
+                window.clearTimeout(
+                    temporizadorLigacao);
+
+                temporizadorLigacao =
+                    window.setTimeout(
+                        iniciarLigacao,
+                        5000);
+            }
+
+            async function iniciarLigacao() {
+                if (connection.state !==
+                    signalR.HubConnectionState.Disconnected) {
+
+                    return;
+                }
+
+                atualizarEstadoLigacao(
+                    "A ligar...",
+                    "bg-secondary");
+
+                try {
+                    await connection.start();
+
+                    await connection.invoke(
+                        "EntrarNoEvento",
+                        eventoId);
+
+                    atualizarEstadoLigacao(
+                        "Ligado",
+                        "bg-success");
+
+                    esconderErro();
+                }
+                catch (erro) {
+                    atualizarEstadoLigacao(
+                        "Desligado",
+                        "bg-danger");
+
+                    mostrarErro(
+                        erro.message ??
+                        "Não foi possível ligar ao chat.");
+
+                    agendarNovaLigacao();
+                }
+
+                atualizarFormulario();
+            }
+
+            if (conteudoInput !== null) {
+                conteudoInput.addEventListener(
+                    "input",
+                    function () {
+                        atualizarContadorCaracteres();
+                        atualizarFormulario();
+                    });
+
+                conteudoInput.addEventListener(
+                    "keydown",
+                    function (evento) {
+                        if (evento.key === "Enter" &&
+                            !evento.shiftKey) {
+
+                            evento.preventDefault();
+
+                            if (formulario !== null) {
+                                formulario.requestSubmit();
+                            }
+                        }
+                    });
+            }
+
+            if (formulario !== null) {
+                formulario.addEventListener(
+                    "submit",
+                    async function (evento) {
+                        evento.preventDefault();
+
+                        const conteudo =
+                            conteudoInput.value.trim();
+
+                        if (conteudo.length === 0) {
+                            return;
+                        }
+
+                        esconderErro();
+                        botaoEnviar.disabled = true;
+
+                        try {
+                            await connection.invoke(
+                                "EnviarMensagem",
+                                eventoId,
+                                conteudo);
+
+                            conteudoInput.value = "";
+
+                            atualizarContadorCaracteres();
+                            atualizarFormulario();
+
+                            conteudoInput.focus();
+                        }
+                        catch (erro) {
+                            mostrarErro(
+                                erro.message ??
+                                "Não foi possível enviar a mensagem.");
+
+                            atualizarFormulario();
+                        }
+                    });
+            }
+
+            /*
+             * Tenta sair explicitamente do grupo antes de
+             * abandonar a página.
+             */
+            window.addEventListener(
+                "beforeunload",
+                function () {
+                    if (connection.state ===
+                        signalR.HubConnectionState.Connected) {
+
+                        connection.invoke(
+                            "SairDoEvento",
+                            eventoId);
+                    }
+                });
+
+            mensagensChat.scrollTop =
+                mensagensChat.scrollHeight;
+
+            atualizarContadorCaracteres();
+            iniciarLigacao();
+        });
+    </script>
+}

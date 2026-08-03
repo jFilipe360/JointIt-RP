@@ -79,6 +79,8 @@ namespace JoinIt.Web.Models
         public ICollection<ConviteEvento> Convites { get; set; }
             = new List<ConviteEvento>();
 
+        public ICollection<MensagemEvento> Mensagens { get; set; } = new List<MensagemEvento>();
+
         public IEnumerable<ValidationResult> Validate(
             ValidationContext validationContext)
         {

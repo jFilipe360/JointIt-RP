@@ -27,5 +27,7 @@ namespace JoinIt.Web.Models
         public ICollection<ConviteEvento> ConvitesRecebidos { get; set; } = new List<ConviteEvento>();
 
         public ICollection<Notificacao> Notificacoes { get; set; } = new List<Notificacao>();
+
+        public ICollection<MensagemEvento> MensagensEnviadas { get; set; } = new List<MensagemEvento>();
     }
 }

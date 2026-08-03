@@ -27,6 +27,8 @@ namespace JoinIt.Web.Data
 
         public DbSet<Notificacao> Notificacoes { get; set; }
 
+        public DbSet<MensagemEvento> MensagensEvento { get; set; }
+
         protected override void OnModelCreating(
             ModelBuilder builder)
         {
@@ -141,6 +143,28 @@ namespace JoinIt.Web.Data
                     n.UtilizadorId,
                     n.Lida,
                     n.CriadoEm
+                });
+
+            // Ao apagar o evento, as mensagens também são apagadas.
+            builder.Entity<MensagemEvento>()
+                .HasOne(m => m.Evento)
+                .WithMany(e => e.Mensagens)
+                .HasForeignKey(m => m.EventoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Não permite apagar um utilizador que tenha mensagens.
+            builder.Entity<MensagemEvento>()
+                .HasOne(m => m.Utilizador)
+                .WithMany(u => u.MensagensEnviadas)
+                .HasForeignKey(m => m.UtilizadorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Facilita o carregamento do histórico de cada evento.
+            builder.Entity<MensagemEvento>()
+                .HasIndex(m => new
+                {
+                    m.EventoId,
+                    m.EnviadaEm
                 });
         }
     }
