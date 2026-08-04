@@ -13,10 +13,13 @@ namespace JoinIt.Web.Hubs
     public class ChatHub : Hub
     {
         /*
-         * Guarda a ligação atual de cada browser/aba.
+         * Guarda as ligações ativas.
          *
-         * Chave: ConnectionId do SignalR.
-         * Valor: evento e utilizador associados à ligação.
+         * Chave:
+         * ConnectionId do SignalR.
+         *
+         * Valor:
+         * Evento e utilizador associados à ligação.
          */
         private static readonly ConcurrentDictionary<string, LigacaoChat>
             Ligacoes = new();
@@ -62,8 +65,7 @@ namespace JoinIt.Web.Hubs
                 .AsNoTracking()
                 .Where(u => u.Id == utilizadorId)
                 .Select(u => u.Nome)
-                .FirstOrDefaultAsync(
-                    Context.ConnectionAborted);
+                .FirstOrDefaultAsync();
 
             if (string.IsNullOrWhiteSpace(nomeUtilizador))
             {
@@ -72,9 +74,8 @@ namespace JoinIt.Web.Hubs
             }
 
             /*
-             * Normalmente uma página entra apenas num evento.
-             * Esta verificação também protege uma ligação que tente
-             * mudar de grupo sem sair do anterior.
+             * Impede que a mesma ligação fique associada
+             * simultaneamente a dois eventos.
              */
             if (Ligacoes.TryGetValue(
                     Context.ConnectionId,
@@ -101,8 +102,7 @@ namespace JoinIt.Web.Hubs
 
             await Groups.AddToGroupAsync(
                 Context.ConnectionId,
-                ObterNomeGrupo(eventoId),
-                Context.ConnectionAborted);
+                ObterNomeGrupo(eventoId));
 
             Ligacoes[Context.ConnectionId] =
                 new LigacaoChat(
@@ -111,8 +111,8 @@ namespace JoinIt.Web.Hubs
                     nomeUtilizador);
 
             /*
-             * Só avisa que o utilizador entrou quando esta é
-             * a primeira ligação dessa conta ao evento.
+             * Só apresenta o aviso de entrada quando esta
+             * é a primeira ligação dessa conta ao evento.
              */
             if (!utilizadorJaEstavaLigado)
             {
@@ -127,7 +127,8 @@ namespace JoinIt.Web.Hubs
                         });
             }
 
-            await EnviarUtilizadoresLigadosAsync(eventoId);
+            await EnviarUtilizadoresLigadosAsync(
+                eventoId);
         }
 
         public async Task SairDoEvento(int eventoId)
@@ -190,8 +191,7 @@ namespace JoinIt.Web.Hubs
             var evento = await _context.Eventos
                 .Include(e => e.Participantes)
                 .FirstOrDefaultAsync(
-                    e => e.Id == eventoId,
-                    Context.ConnectionAborted);
+                    e => e.Id == eventoId);
 
             if (evento is null)
             {
@@ -230,8 +230,7 @@ namespace JoinIt.Web.Hubs
             {
                 if (_context.ChangeTracker.HasChanges())
                 {
-                    await _context.SaveChangesAsync(
-                        Context.ConnectionAborted);
+                    await _context.SaveChangesAsync();
                 }
 
                 throw new HubException(
@@ -246,8 +245,7 @@ namespace JoinIt.Web.Hubs
                     u.Nome,
                     u.FotoPerfil
                 })
-                .FirstOrDefaultAsync(
-                    Context.ConnectionAborted);
+                .FirstOrDefaultAsync();
 
             if (utilizador is null)
             {
@@ -265,8 +263,7 @@ namespace JoinIt.Web.Hubs
 
             _context.MensagensEvento.Add(mensagem);
 
-            await _context.SaveChangesAsync(
-                Context.ConnectionAborted);
+            await _context.SaveChangesAsync();
 
             var mensagemCliente = new
             {
@@ -282,8 +279,7 @@ namespace JoinIt.Web.Hubs
                 .Group(ObterNomeGrupo(eventoId))
                 .SendAsync(
                     "ReceberMensagem",
-                    mensagemCliente,
-                    Context.ConnectionAborted);
+                    mensagemCliente);
         }
 
         public override async Task OnDisconnectedAsync(
@@ -302,7 +298,8 @@ namespace JoinIt.Web.Hubs
                 if (!utilizadorContinuaLigado)
                 {
                     await Clients
-                        .Group(ObterNomeGrupo(ligacao.EventoId))
+                        .Group(ObterNomeGrupo(
+                            ligacao.EventoId))
                         .SendAsync(
                             "UtilizadorSaiu",
                             new
@@ -343,7 +340,8 @@ namespace JoinIt.Web.Hubs
             if (!utilizadorContinuaLigado)
             {
                 await Clients
-                    .Group(ObterNomeGrupo(ligacao.EventoId))
+                    .Group(ObterNomeGrupo(
+                        ligacao.EventoId))
                     .SendAsync(
                         "UtilizadorSaiu",
                         new
@@ -370,6 +368,7 @@ namespace JoinIt.Web.Hubs
                 .Select(grupo => new
                 {
                     utilizadorId = grupo.Key,
+
                     nome = grupo
                         .Select(l => l.Nome)
                         .First()
@@ -401,16 +400,14 @@ namespace JoinIt.Web.Hubs
         {
             return await _context.Eventos
                 .AsNoTracking()
-                .AnyAsync(
-                    e =>
-                        e.Id == eventoId &&
-                        (
-                            e.CriadorId == utilizadorId ||
-                            e.Participantes.Any(p =>
-                                p.UtilizadorId == utilizadorId &&
-                                p.Estado == EstadoPedido.Aceite)
-                        ),
-                    Context.ConnectionAborted);
+                .AnyAsync(e =>
+                    e.Id == eventoId &&
+                    (
+                        e.CriadorId == utilizadorId ||
+                        e.Participantes.Any(p =>
+                            p.UtilizadorId == utilizadorId &&
+                            p.Estado == EstadoPedido.Aceite)
+                    ));
         }
 
         private static string ObterNomeGrupo(int eventoId)
