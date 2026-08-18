@@ -108,7 +108,7 @@
                       method="post"
                       class="form-horizontal">
 
-                    @foreach (var provider in Model.ExternalLogins)
+                    @foreach (var provider in Model.ExternalLogins ?? [])
                     {
                         <button type="submit"
                                 class="btn btn-primary"

@@ -1,0 +1,6 @@
+@JoinIt.Api_HostAddress = http://localhost:5103
+
+GET {{JoinIt.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
