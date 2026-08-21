@@ -28,6 +28,9 @@ builder.Services
 // Serviço que cria os JWT
 builder.Services.AddScoped<TokenService>();
 
+builder.Services.AddScoped<IEstadoEventoService, EstadoEventoService>();
+builder.Services.AddScoped<INotificacaoService, NotificacaoService>();
+
 // Configuração JWT
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException("Jwt:Key não está configurada.");
