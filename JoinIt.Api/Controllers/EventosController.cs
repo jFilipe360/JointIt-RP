@@ -1,5 +1,6 @@
 ﻿using JoinIt.Api.Data;
 using JoinIt.Api.DTOs.Categorias;
+using JoinIt.Api.DTOs.Convites;
 using JoinIt.Api.DTOs.Eventos;
 using JoinIt.Api.Enums;
 using JoinIt.Api.Models;
@@ -613,5 +614,418 @@ public class EventosController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    [Authorize]
+    [HttpPost("{id:int}/participar")]
+    public async Task<IActionResult> ParticiparEvento(int id)
+    {
+        var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (utilizadorId == null)
+        {
+            return Unauthorized();
+        }
+
+        await _estadoEventoService.AtualizarEstadosAsync();
+
+        var evento = await _context.Eventos
+            .Include(e => e.Participantes)
+            .FirstOrDefaultAsync(e => e.Id == id);
+
+        if (evento == null)
+        {
+            return NotFound(new
+            {
+                message = "Evento não encontrado."
+            });
+        }
+
+        if (evento.CriadorId == utilizadorId)
+        {
+            return BadRequest(new
+            {
+                message = "O criador já participa no próprio evento."
+            });
+        }
+
+        if (evento.IsPrivado)
+        {
+            return Forbid();
+        }
+
+        if (evento.Estado != EstadoEvento.ParaBreve ||
+            evento.DataHora <= DateTime.Now)
+        {
+            return BadRequest(new
+            {
+                message = "Já não é possível participar neste evento."
+            });
+        }
+
+        var numeroParticipantes = evento.Participantes
+            .Count(p => p.Estado == EstadoPedido.Aceite);
+
+        if (numeroParticipantes >= evento.NumMaxParticipantes)
+        {
+            return BadRequest(new
+            {
+                message = "O evento já atingiu a lotação máxima."
+            });
+        }
+
+        var participacao = evento.Participantes
+            .FirstOrDefault(p => p.UtilizadorId == utilizadorId);
+
+        if (participacao == null)
+        {
+            evento.Participantes.Add(new Participante
+            {
+                UtilizadorId = utilizadorId,
+                Estado = EstadoPedido.Aceite,
+                DataPedido = DateTime.Now
+            });
+        }
+        else
+        {
+            participacao.Estado = EstadoPedido.Aceite;
+            participacao.DataPedido = DateTime.Now;
+        }
+
+        await _context.SaveChangesAsync();
+
+        var nomeUtilizador = await _context.Users
+            .AsNoTracking()
+            .Where(u => u.Id == utilizadorId)
+            .Select(u => u.Nome)
+            .FirstOrDefaultAsync() ?? "Um utilizador";
+
+        var link = $"/Eventos/Details?id={evento.Id}";
+
+        await _notificacaoService.CriarAsync(
+            evento.CriadorId,
+            "Novo participante",
+            $"{nomeUtilizador} entrou no teu evento {evento.Titulo}.",
+            link);
+
+        return Ok(new
+        {
+            message = "Entraste no evento com sucesso."
+        });
+    }
+
+    [Authorize]
+    [HttpDelete("{id:int}/participacao")]
+    public async Task<IActionResult> SairEvento(int id)
+    {
+        var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (utilizadorId == null)
+        {
+            return Unauthorized();
+        }
+
+        var evento = await _context.Eventos
+            .FirstOrDefaultAsync(e => e.Id == id);
+
+        if (evento == null)
+        {
+            return NotFound(new
+            {
+                message = "Evento não encontrado."
+            });
+        }
+
+        if (evento.CriadorId == utilizadorId)
+        {
+            return Forbid();
+        }
+
+        var participacao = await _context.Participantes
+            .FirstOrDefaultAsync(p =>
+                p.EventoId == id &&
+                p.UtilizadorId == utilizadorId);
+
+        var estavaAParticipar =
+            participacao?.Estado == EstadoPedido.Aceite;
+
+        if (participacao != null)
+        {
+            _context.Participantes.Remove(participacao);
+        }
+
+        if (evento.IsPrivado)
+        {
+            var convite = await _context.ConvitesEvento
+                .FirstOrDefaultAsync(c =>
+                    c.EventoId == id &&
+                    c.RecetorId == utilizadorId &&
+                    c.Estado == EstadoPedido.Aceite);
+
+            if (convite != null)
+            {
+                _context.ConvitesEvento.Remove(convite);
+            }
+        }
+
+        await _context.SaveChangesAsync();
+
+        if (!evento.IsPrivado && estavaAParticipar)
+        {
+            var nomeUtilizador = await _context.Users
+                .AsNoTracking()
+                .Where(u => u.Id == utilizadorId)
+                .Select(u => u.Nome)
+                .FirstOrDefaultAsync() ?? "Um utilizador";
+
+            var link = $"/Eventos/Details?id={evento.Id}";
+
+            await _notificacaoService.CriarAsync(
+                evento.CriadorId,
+                "Participante saiu",
+                $"{nomeUtilizador} saiu do teu evento {evento.Titulo}.",
+                link);
+        }
+
+        return Ok(new
+        {
+            message = "Saíste do evento."
+        });
+    }
+
+    [Authorize]
+    [HttpPost("{id:int}/convites")]
+    public async Task<IActionResult> CriarConvite(
+    int id,
+    CriarConviteDto dto)
+    {
+        var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (utilizadorId == null)
+        {
+            return Unauthorized();
+        }
+
+        if (string.IsNullOrWhiteSpace(dto.RecetorId) ||
+            dto.RecetorId == utilizadorId)
+        {
+            return BadRequest(new
+            {
+                message = "O utilizador selecionado não é válido."
+            });
+        }
+
+        var evento = await _context.Eventos
+            .Include(e => e.Participantes)
+            .Include(e => e.Convites)
+            .FirstOrDefaultAsync(e => e.Id == id);
+
+        if (evento == null)
+        {
+            return NotFound(new
+            {
+                message = "Evento não encontrado."
+            });
+        }
+
+        if (evento.CriadorId != utilizadorId)
+        {
+            return Forbid();
+        }
+
+        if (!evento.IsPrivado)
+        {
+            return BadRequest(new
+            {
+                message = "Só é possível enviar convites para eventos privados."
+            });
+        }
+
+        var estadoAtual = _estadoEventoService.CalcularEstado(
+            evento.DataHora,
+            evento.DataFim,
+            evento.Estado);
+
+        if (evento.Estado != estadoAtual)
+        {
+            evento.Estado = estadoAtual;
+            await _context.SaveChangesAsync();
+        }
+
+        if (estadoAtual == EstadoEvento.Cancelado)
+        {
+            return BadRequest(new
+            {
+                message = "Não é possível enviar convites para um evento cancelado."
+            });
+        }
+
+        if (estadoAtual == EstadoEvento.Terminado)
+        {
+            return BadRequest(new
+            {
+                message = "Não é possível enviar convites para um evento terminado."
+            });
+        }
+
+        if (estadoAtual == EstadoEvento.ADecorrer ||
+            evento.DataHora <= DateTime.Now)
+        {
+            return BadRequest(new
+            {
+                message = "O evento já começou. Já não é possível enviar convites."
+            });
+        }
+
+        var numeroParticipantes = evento.Participantes
+            .Count(p => p.Estado == EstadoPedido.Aceite);
+
+        if (numeroParticipantes >= evento.NumMaxParticipantes)
+        {
+            return BadRequest(new
+            {
+                message = "O evento já atingiu a lotação máxima."
+            });
+        }
+
+        var saoAmigos = await _context.Amizades
+            .AsNoTracking()
+            .AnyAsync(a =>
+                a.Estado == EstadoPedido.Aceite &&
+                (
+                    (a.EmissorId == utilizadorId &&
+                     a.RecetorId == dto.RecetorId) ||
+                    (a.EmissorId == dto.RecetorId &&
+                     a.RecetorId == utilizadorId)
+                ));
+
+        if (!saoAmigos)
+        {
+            return BadRequest(new
+            {
+                message = "Só podes convidar utilizadores que sejam teus amigos."
+            });
+        }
+
+        var jaParticipa = evento.Participantes.Any(p =>
+            p.UtilizadorId == dto.RecetorId &&
+            p.Estado == EstadoPedido.Aceite);
+
+        if (jaParticipa)
+        {
+            return BadRequest(new
+            {
+                message = "Este utilizador já participa no evento."
+            });
+        }
+
+        var convite = evento.Convites
+            .FirstOrDefault(c => c.RecetorId == dto.RecetorId);
+
+        string mensagem;
+
+        if (convite == null)
+        {
+            evento.Convites.Add(new ConviteEvento
+            {
+                EmissorId = utilizadorId,
+                RecetorId = dto.RecetorId,
+                Estado = EstadoPedido.Pendente,
+                CriadoEm = DateTime.Now
+            });
+
+            mensagem = "Convite enviado com sucesso.";
+        }
+        else if (convite.Estado == EstadoPedido.Rejeitado)
+        {
+            convite.EmissorId = utilizadorId;
+            convite.Estado = EstadoPedido.Pendente;
+            convite.CriadoEm = DateTime.Now;
+            convite.RespondidoEm = null;
+
+            mensagem = "Convite enviado novamente.";
+        }
+        else if (convite.Estado == EstadoPedido.Pendente)
+        {
+            return BadRequest(new
+            {
+                message = "Já existe um convite pendente para este utilizador."
+            });
+        }
+        else
+        {
+            return BadRequest(new
+            {
+                message = "Este utilizador já aceitou o convite."
+            });
+        }
+
+        await _context.SaveChangesAsync();
+
+        await _notificacaoService.CriarAsync(
+            dto.RecetorId,
+            "Novo convite para evento",
+            $"Foste convidado para o evento {evento.Titulo}.",
+            "/Convites");
+
+        return Ok(new
+        {
+            message = mensagem
+        });
+    }
+
+    [Authorize]
+    [HttpDelete("{id:int}/convites/{conviteId:int}")]
+    public async Task<IActionResult> CancelarConvite(
+    int id,
+    int conviteId)
+    {
+        var utilizadorId =
+            User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (utilizadorId == null)
+        {
+            return Unauthorized();
+        }
+
+        var evento = await _context.Eventos
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Id == id);
+
+        if (evento == null)
+        {
+            return NotFound(new
+            {
+                message = "Evento não encontrado."
+            });
+        }
+
+        if (evento.CriadorId != utilizadorId)
+        {
+            return Forbid();
+        }
+
+        var convite = await _context.ConvitesEvento
+            .FirstOrDefaultAsync(c =>
+                c.Id == conviteId &&
+                c.EventoId == id &&
+                c.EmissorId == utilizadorId &&
+                c.Estado == EstadoPedido.Pendente);
+
+        if (convite == null)
+        {
+            return NotFound(new
+            {
+                message = "O convite pendente não foi encontrado."
+            });
+        }
+
+        _context.ConvitesEvento.Remove(convite);
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "Convite cancelado."
+        });
     }
 }
