@@ -5,12 +5,29 @@
     ViewData["Title"] = "Notificações";
 }
 
-<div class="d-flex justify-content-between align-items-start mb-4">
+<div class="notifications-page-header mb-5">
     <div>
-        <h1>Notificações</h1>
+        <p class="section-kicker mb-1">
+            ATIVIDADE
+        </p>
+        <h1 class="section-title mb-2">
+            Notificações
+        </h1>
 
         <p class="text-muted mb-0">
-            Tens @Model.NumeroNaoLidas notificações não lidas.
+            @if (Model.NumeroNaoLidas == 0)
+            {
+                <text>Não tens notificações por ler.</text>
+            }
+            else
+            {
+                <text>
+                    Tens @Model.NumeroNaoLidas
+                    @(Model.NumeroNaoLidas == 1
+                        ? "notificação não lida"
+                        : "notificações não lidas").
+                </text>
+            }
         </p>
     </div>
 
@@ -20,7 +37,7 @@
               asp-page-handler="MarcarTodas">
 
             <button type="submit"
-                    class="btn btn-outline-primary">
+                    class="btn btn-primary px-4">
                 Marcar todas como lidas
             </button>
         </form>
@@ -36,46 +53,53 @@
 
 @if (Model.Notificacoes.Count == 0)
 {
-    <div class="alert alert-info">
-        Ainda não tens notificações.
+    <div class="eventos-empty-state">
+        <h3 class="h5 fw-bold mb-2">
+            Ainda não tens notificações
+        </h3>
+
+        <p class="text-muted mb-0">
+            Quando houver atividade relacionada contigo,
+            as notificações vão aparecer aqui.
+        </p>
     </div>
 }
 else
 {
-    <div class="list-group">
+    <div class="notifications-list">
         @foreach (var notificacao in Model.Notificacoes)
         {
             string classeNotificacao = notificacao.Lida
-                ? "list-group-item-light"
-                : "list-group-item-primary";
+                ? "notificacao-lida"
+                : "notificacao-nao-lida";
 
-            <div class="list-group-item @classeNotificacao mb-3 rounded shadow-sm">
-                <div class="d-flex justify-content-between gap-3">
+            <div class="notificacao-item @classeNotificacao mb-3">
+                <div class="notificacao-conteudo">
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-2">
-                            <h5 class="mb-0">
+                            <h3 class="notificacao-titulo mb-0">
                                 @notificacao.Titulo
-                            </h5>
+                            </h3>
 
                             @if (!notificacao.Lida)
                             {
-                                <span class="badge bg-primary">
+                                <span class="notificacao-nova-badge">
                                     Nova
                                 </span>
                             }
                         </div>
 
-                        <p class="mb-2">
+                        <p class="notificacao-mensagem mb-2">
                             @notificacao.Mensagem
                         </p>
 
-                        <small class="text-muted">
+                        <small class="notificacao-data">
                             @notificacao.CriadoEm.ToString(
                                 "dd/MM/yyyy HH:mm")
                         </small>
                     </div>
 
-                    <div class="d-flex flex-column gap-2">
+                    <div class="notificacao-actions">
                         @if (!string.IsNullOrWhiteSpace(
                             notificacao.Link))
                         {
@@ -84,7 +108,7 @@ else
                                   asp-route-id="@notificacao.Id">
 
                                 <button type="submit"
-                                        class="btn btn-sm btn-primary w-100">
+                                        class="btn btn-sm btn-primary">
                                     Abrir
                                 </button>
                             </form>
@@ -97,7 +121,7 @@ else
                                   asp-route-id="@notificacao.Id">
 
                                 <button type="submit"
-                                        class="btn btn-sm btn-outline-secondary w-100">
+                                        class="btn btn-sm btn-outline-secondary">
                                     Marcar como lida
                                 </button>
                             </form>

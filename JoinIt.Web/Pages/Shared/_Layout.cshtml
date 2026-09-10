@@ -1,9 +1,9 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - JoinIt.Web</title>
+    <title>@ViewData["Title"] - JoinIt</title>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -11,17 +11,19 @@
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-lg navbar-dark joinit-navbar">
             <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Index">JoinIt.Web</a>
+                <a class="navbar-brand joinit-brand" asp-area="" asp-page="/Index">
+                    Join<span>It</span>
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-flex align-items-center justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+                <div class="navbar-collapse collapse align-items-lg-center justify-content-between">
+                    <ul class="navbar-nav flex-grow-1 joinit-nav-links">
                         <li class="nav-item">
-                            <a class="nav-link text-dark"
+                            <a class="nav-link"
                                asp-page="/Eventos/Index">
                                 Eventos
                             </a>
@@ -29,25 +31,25 @@
                         @if (User.Identity?.IsAuthenticated == true)
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark"
+                                <a class="nav-link"
                                    asp-page="/Eventos/MyEvents">
                                     Os meus eventos
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark"
+                                <a class="nav-link"
                                    asp-page="/Users/Index">
                                     Utilizadores
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark"
+                                <a class="nav-link"
                                    asp-page="/Amigos/Index">
                                     Amizades
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-dark"
+                                <a class="nav-link"
                                    asp-page="/Convites/Index">
                                     Convites
                                 </a>
@@ -63,14 +65,14 @@
         </nav>
     </header>
     <div class="container">
-        <main role="main" class="pb-3">
+        <main role="main" class="joinit-main">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
+    <footer class="joinit-footer">
         <div class="container">
-            &copy; 2026 - JoinIt.Web - <a asp-area="" asp-page="/Privacy">Privacy</a>
+            <span>&copy; 2026 Join<span class="gold">It</span></span>
         </div>
     </footer>
 

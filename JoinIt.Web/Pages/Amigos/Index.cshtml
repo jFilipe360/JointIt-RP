@@ -6,11 +6,19 @@
     ViewData["Title"] = "Amizades";
 }
 
-<h1>Amizades</h1>
+<div class="mb-5">
+    <p class="section-kicker mb-1">
+        COMUNIDADE
+    </p>
 
-<p class="text-muted mb-4">
-    Gere os teus amigos e pedidos de amizade.
-</p>
+    <h1 class="section-title mb-2">
+        Amizades
+    </h1>
+
+    <p class="text-muted mb-0">
+        Gere os teus amigos e pedidos de amizade.
+    </p>
+</div>
 
 @if (TempData["MensagemSucesso"] is string mensagemSucesso)
 {
@@ -26,17 +34,37 @@
     </div>
 }
 
-<h2 class="mb-3">Pedidos recebidos</h2>
+<div class="amizades-section-header mb-4">
+    <div>
+        <p class="section-kicker mb-1">
+            PEDIDOS
+        </p>
+
+        <h2 class="h4 fw-bold mb-0">
+            Pedidos recebidos
+        </h2>
+    </div>
+
+    <span class="resultados-count">
+        @Model.PedidosRecebidos.Count
+    </span>
+</div>
 
 @if (Model.PedidosRecebidos.Count == 0)
 {
-    <div class="alert alert-info">
-        Não tens pedidos de amizade pendentes.
+    <div class="eventos-empty-state mb-5">
+        <h3 class="h5 fw-bold mb-2">
+            Nenhum pedido pendente
+        </h3>
+
+        <p class="text-muted mb-0">
+            Não tens pedidos de amizade para responder.
+        </p>
     </div>
 }
 else
 {
-    <div class="row mb-5">
+    <div class="row g-4 mb-5">
         @foreach (var pedido in Model.PedidosRecebidos)
         {
             var avatarEmissor = new AvatarUtilizadorViewModel
@@ -46,29 +74,31 @@ else
                 Tamanho = 80
             };
 
-            <div class="col-md-6 col-lg-4 mb-3">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body text-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="card amizade-card h-100">
+                    <div class="card-body text-center p-4">
 
                         <div class="d-flex justify-content-center mb-3">
                             <partial name="_UserAvatar"
                                      model="avatarEmissor" />
                         </div>
 
-                        <h5>@pedido.Emissor.Nome</h5>
+                        <h3 class="h5 fw-bold mb-2">
+                            @pedido.Emissor.Nome
+                        </h3>
 
-                        <p class="text-muted">
+                        <p class="amizade-data">
                             Pedido enviado em
                             @pedido.CriadoEm.ToString("dd/MM/yyyy HH:mm")
                         </p>
 
-                        <div class="d-flex justify-content-center gap-2">
+                        <div class="d-flex flex-wrap justify-content-center gap-2 amizade-actions">
                             <form method="post"
                                   asp-page-handler="Aceitar"
                                   asp-route-id="@pedido.Id">
 
                                 <button type="submit"
-                                        class="btn btn-success">
+                                        class="btn btn-primary">
                                     Aceitar
                                 </button>
                             </form>
@@ -86,7 +116,7 @@ else
 
                         <a asp-page="/Users/Details"
                            asp-route-id="@pedido.EmissorId"
-                           class="btn btn-link mt-2">
+                           class="btn btn-outline-secondary mt-3">
                             Ver perfil
                         </a>
 
@@ -97,17 +127,37 @@ else
     </div>
 }
 
-<h2 class="mb-3">Pedidos enviados</h2>
+<div class="amizades-section-header mb-4">
+    <div>
+        <p class="section-kicker mb-1">
+            A AGUARDAR RESPOSTA
+        </p>
+
+        <h2 class="h4 fw-bold mb-0">
+            Pedidos enviados
+        </h2>
+    </div>
+
+    <span class="resultados-count">
+        @Model.PedidosEnviados.Count
+    </span>
+</div>
 
 @if (Model.PedidosEnviados.Count == 0)
 {
-    <div class="alert alert-info">
-        Não tens pedidos enviados pendentes.
+    <div class="eventos-empty-state mb-5">
+        <h3 class="h5 fw-bold mb-2">
+            Nenhum pedido enviado
+        </h3>
+
+        <p class="text-muted mb-0">
+            Não tens pedidos de amizade enviados pendentes.
+        </p>
     </div>
 }
 else
 {
-    <div class="row mb-5">
+    <div class="row g-4 mb-5">
         @foreach (var pedido in Model.PedidosEnviados)
         {
             var avatarRecetor = new AvatarUtilizadorViewModel
@@ -116,9 +166,9 @@ else
                 FotoPerfil = pedido.Recetor.FotoPerfil,
                 Tamanho = 70
             };
-            <div class="col-md-6 col-lg-4 mb-3">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body text-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="card amizade-card h-100">
+                    <div class="card-body text-center p-4">
                         <div class="d-flex justify-content-center mb-3">
                             <partial name="_UserAvatar"
                                      model="avatarRecetor" />
@@ -133,14 +183,14 @@ else
                             @pedido.CriadoEm.ToString("dd/MM/yyyy HH:mm")
                         </p>
 
-                        <span class="badge bg-warning text-dark mb-3">
-                            Pendente
+                        <span class="perfil-status amizade-pendente mb-3">
+                            Pedido pendente
                         </span>
 
-                        <div class="d-flex gap-2">
+                        <div class="d-flex flex-wrap justify-content-center gap-2 amizade-actions">
                             <a asp-page="/Users/Details"
                                asp-route-id="@pedido.RecetorId"
-                               class="btn btn-outline-primary">
+                               class="btn btn-primary">
                                 Ver perfil
                             </a>
 
@@ -162,17 +212,37 @@ else
     </div>
 }
 
-<h2 class="mb-3">Os meus amigos</h2>
+<div class="amizades-section-header mb-4">
+    <div>
+        <p class="section-kicker mb-1">
+            A TUA REDE
+        </p>
+
+        <h2 class="h4 fw-bold mb-0">
+            Os meus amigos
+        </h2>
+    </div>
+
+    <span class="resultados-count">
+        @Model.Amigos.Count
+    </span>
+</div>
 
 @if (Model.Amigos.Count == 0)
 {
-    <div class="alert alert-info">
-        Ainda não tens amigos adicionados.
+    <div class="eventos-empty-state">
+        <h3 class="h5 fw-bold mb-2">
+            Ainda não tens amigos
+        </h3>
+
+        <p class="text-muted mb-0">
+            Explora os utilizadores e envia pedidos de amizade.
+        </p>
     </div>
 }
 else
 {
-    <div class="row">
+    <div class="row g-4">
         @foreach (var amizade in Model.Amigos)
         {
             var avatarAmigo = new AvatarUtilizadorViewModel
@@ -182,21 +252,27 @@ else
                 Tamanho = 80
             };
 
-            <div class="col-md-6 col-lg-4 mb-3">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body text-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="card amizade-card h-100">
+                    <div class="card-body text-center p-4">
 
                         <div class="d-flex justify-content-center mb-3">
                             <partial name="_UserAvatar"
                                      model="avatarAmigo" />
                         </div>
 
-                        <h5>@amizade.Utilizador.Nome</h5>
+                        <h3 class="h5 fw-bold mb-3">
+                            @amizade.Utilizador.Nome
+                        </h3>
 
-                        <div class="d-flex justify-content-center gap-2">
+                        <span class="perfil-status amizade-aceite mb-3">
+                            Amigo
+                        </span>
+
+                        <div class="d-flex flex-wrap justify-content-center gap-2 amizade-actions">
                             <a asp-page="/Users/Details"
                                asp-route-id="@amizade.Utilizador.Id"
-                               class="btn btn-outline-primary">
+                               class="btn btn-primary">
                                 Ver perfil
                             </a>
 

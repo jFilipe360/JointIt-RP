@@ -27,9 +27,14 @@
     </div>
 }
 
-<div class="d-flex justify-content-between align-items-start mb-4">
+<div class="perfil-page-header mb-5">
     <div>
-        <h1>O meu perfil</h1>
+        <p class="section-kicker mb-1">
+            A TUA CONTA
+        </p>
+        <h1 class="section-title mb-2">
+            O meu perfil
+        </h1>
 
         <p class="text-muted mb-0">
             Consulta e gere os teus dados pessoais.
@@ -37,13 +42,13 @@
     </div>
 
     <a asp-page="./Edit"
-       class="btn btn-primary">
+       class="btn btn-primary px-4">
         Editar perfil
     </a>
 </div>
 
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
+<div class="card perfil-main-card mb-5">
+    <div class="card-body p-4 p-md-5">
         <div class="row align-items-center">
 
             <div class="col-md-auto text-center mb-4 mb-md-0">
@@ -52,11 +57,11 @@
             </div>
 
             <div class="col-md">
-                <h2 class="mb-3">
+                <h2 class="perfil-nome mb-3">
                     @Model.Utilizador.Nome
                 </h2>
 
-                <dl class="row mb-0">
+                <dl class="row mb-0 perfil-dados">
                     <dt class="col-sm-3">
                         Email
                     </dt>
@@ -79,58 +84,58 @@
     </div>
 </div>
 
-<div class="row mb-4">
-    <div class="col-md-4 mb-3">
-        <div class="card h-100 shadow-sm text-center">
-            <div class="card-body">
-                <h3 class="display-6">
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card perfil-stat-card h-100 text-center">
+            <div class="card-body d-flex flex-column p-4">
+                <h3 class="perfil-stat-number">
                     @Model.NumeroAmigos
                 </h3>
 
-                <p class="text-muted mb-3">
+                <p class="perfil-stat-label mb-4">
                     Amigos
                 </p>
 
                 <a asp-page="/Amigos/Index"
-                   class="btn btn-outline-primary">
+                   class="btn btn-outline-primary mt-auto">
                     Ver amizades
                 </a>
             </div>
         </div>
     </div>
 
-    <div class="col-md-4 mb-3">
-        <div class="card h-100 shadow-sm text-center">
-            <div class="card-body">
-                <h3 class="display-6">
+   <div class="col-md-4">
+        <div class="card perfil-stat-card h-100 text-center">
+            <div class="card-body d-flex flex-column p-4">
+                <h3 class="perfil-stat-number">
                     @Model.NumeroEventosCriados
                 </h3>
 
-                <p class="text-muted mb-3">
+                <p class="perfil-stat-label mb-4">
                     Eventos criados
                 </p>
 
                 <a asp-page="/Eventos/MyEvents"
-                   class="btn btn-outline-primary">
+                   class="btn btn-outline-primary mt-auto">
                     Ver eventos
                 </a>
             </div>
         </div>
     </div>
 
-    <div class="col-md-4 mb-3">
-        <div class="card h-100 shadow-sm text-center">
-            <div class="card-body">
-                <h3 class="display-6">
+    <div class="col-md-4">
+        <div class="card perfil-stat-card h-100 text-center">
+            <div class="card-body d-flex flex-column p-4">
+                <h3 class="perfil-stat-number">
                     @Model.NumeroEventosParticipados
                 </h3>
 
-                <p class="text-muted mb-3">
+                <p class="perfil-stat-label mb-4">
                     Eventos participados
                 </p>
 
                 <a asp-page="/Eventos/MyEvents"
-                   class="btn btn-outline-primary">
+                   class="btn btn-outline-primary mt-auto">
                     Ver participações
                 </a>
             </div>

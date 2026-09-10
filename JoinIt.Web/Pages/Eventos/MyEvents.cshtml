@@ -6,9 +6,14 @@
     ViewData["Title"] = "Os meus eventos";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="eventos-page-header mb-4">
     <div>
-        <h1>Os meus eventos</h1>
+        <p class="section-kicker mb-1">
+            A TUA ATIVIDADE
+        </p>
+        <h1 class="section-title mb-2">
+            Os meus eventos
+        </h1>
 
         <p class="text-muted mb-0">
             Consulta os eventos que criaste e aqueles em que participas.
@@ -16,14 +21,14 @@
     </div>
 
     <a asp-page="./Create"
-       class="btn btn-primary">
+       class="btn btn-primary px-4">
         Criar evento
     </a>
 </div>
 
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <div class="d-flex flex-wrap gap-2">
+<div class="card meus-eventos-filtros mb-5">
+    <div class="card-body p-4">
+        <div class="d-flex flex-wrap gap-2 meus-eventos-filter-buttons">
 
             <a asp-page="./MyEvents"
                asp-route-filtro="ativos"
@@ -77,19 +82,38 @@
     </div>
 </div>
 
-<h2 class="mb-3">
-    Eventos criados por mim
-</h2>
+<div class="meus-eventos-section-header mb-4">
+    <div>
+        <p class="section-kicker mb-1">
+            ORGANIZADOS POR TI
+        </p>
+
+        <h2 class="h4 fw-bold mb-0">
+            Eventos criados por mim
+        </h2>
+    </div>
+
+    <span class="resultados-count">
+        @Model.EventosCriados.Count
+        @(Model.EventosCriados.Count == 1 ? "evento" : "eventos")
+    </span>
+</div>
 
 @if (Model.EventosCriados.Count == 0)
 {
-    <div class="alert alert-info">
-        Não existem eventos criados por ti neste filtro.
+    <div class="eventos-empty-state mb-5">
+        <h3 class="h5 fw-bold mb-2">
+            Ainda não tens eventos nesta categoria
+        </h3>
+
+        <p class="text-muted mb-0">
+            Não existem eventos criados por ti neste filtro.
+        </p>
     </div>
 }
 else
 {
-    <div class="row mb-5">
+    <div class="row g-4 mb-5">
         @foreach (var evento in Model.EventosCriados)
         {
             int participantes = evento.Participantes.Count(
@@ -110,16 +134,16 @@ else
 
             string classeEstado = evento.Estado switch
             {
-                EstadoEvento.ParaBreve => "bg-primary",
-                EstadoEvento.ADecorrer => "bg-success",
-                EstadoEvento.Terminado => "bg-secondary",
-                EstadoEvento.Cancelado => "bg-danger",
-                _ => "bg-secondary"
+                EstadoEvento.ParaBreve => "estado-parabreve",
+                EstadoEvento.ADecorrer => "estado-decorrer",
+                EstadoEvento.Terminado => "estado-terminado",
+                EstadoEvento.Cancelado => "estado-cancelado",
+                _ => "estado-terminado"
             };
 
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body d-flex flex-column">
+            <div class="col-md-6 col-lg-4">
+                <div class="card evento-list-card h-100">
+                    <div class="card-body d-flex flex-column p-4">
 
                         <div class="d-flex justify-content-between
                                     align-items-start gap-2 mb-2">
@@ -128,7 +152,7 @@ else
                                 @evento.Titulo
                             </h5>
 
-                            <span class="badge @classeEstado">
+                            <span class="estado-badge @classeEstado">
                                 @nomeEstado
                             </span>
                         </div>
@@ -136,23 +160,19 @@ else
                         <div class="mb-3">
                             @if (evento.IsPrivado)
                             {
-                                <span class="badge bg-warning text-dark">
+                                <span class="privacidade-badge privacidade-privado">
                                     Privado
                                 </span>
                             }
                             else
                             {
-                                <span class="badge bg-success">
+                                <span class="privacidade-badge privacidade-publico">
                                     Público
                                 </span>
                             }
                         </div>
 
-                        <p class="card-text text-muted"
-                           style="display: -webkit-box;
-                                  -webkit-line-clamp: 3;
-                                  -webkit-box-orient: vertical;
-                                  overflow: hidden;">
+                        <p class="evento-card-descricao text-muted">
                             @evento.Descricao
                         </p>
 
@@ -179,13 +199,13 @@ else
 
                         @if (lugaresDisponiveis == 0)
                         {
-                            <span class="badge bg-danger align-self-start mb-3">
-                                Lotado
+                            <span class="evento-lotacao evento-lotado mb-3">
+                                Lotação máxima atingida
                             </span>
                         }
                         else
                         {
-                            <span class="text-success small mb-3">
+                            <span class="evento-lotacao evento-disponivel mb-3">
                                 @lugaresDisponiveis
                                 @(lugaresDisponiveis == 1
                                     ? "lugar disponível"
@@ -198,7 +218,7 @@ else
                                 evento.EventosCategorias
                                     .OrderBy(ec => ec.Categoria.Nome))
                             {
-                                <span class="badge bg-secondary mb-1">
+                                <span class="categoria-badge mb-1">
                                     @eventoCategoria.Categoria.Nome
                                 </span>
                             }
@@ -207,7 +227,7 @@ else
                         <div class="d-flex flex-wrap gap-2 mt-auto">
                             <a asp-page="./Details"
                                asp-route-id="@evento.Id"
-                               class="btn btn-outline-primary">
+                               class="btn btn-primary">
                                 Ver detalhes
                             </a>
 
@@ -221,7 +241,6 @@ else
                                 </a>
                             }
                         </div>
-
                     </div>
                 </div>
             </div>
@@ -229,19 +248,38 @@ else
     </div>
 }
 
-<h2 class="mb-3">
-    Eventos em que participo
-</h2>
+<div class="meus-eventos-section-header mb-4">
+    <div>
+        <p class="section-kicker mb-1">
+            PARTICIPAÇÕES
+        </p>
+
+        <h2 class="h4 fw-bold mb-0">
+            Eventos em que participo
+        </h2>
+    </div>
+
+    <span class="resultados-count">
+        @Model.EventosParticipados.Count
+        @(Model.EventosParticipados.Count == 1 ? "evento" : "eventos")
+    </span>
+</div>
 
 @if (Model.EventosParticipados.Count == 0)
 {
-    <div class="alert alert-info">
-        Não existem participações neste filtro.
+    <div class="eventos-empty-state mb-5">
+        <h3 class="h5 fw-bold mb-2">
+            Nenhuma participação encontrada
+        </h3>
+
+        <p class="text-muted mb-0">
+            Não existem participações neste filtro.
+        </p>
     </div>
 }
 else
 {
-    <div class="row">
+    <div class="row g-4">
         @foreach (var evento in Model.EventosParticipados)
         {
             int participantes = evento.Participantes.Count(
@@ -262,16 +300,16 @@ else
 
             string classeEstado = evento.Estado switch
             {
-                EstadoEvento.ParaBreve => "bg-primary",
-                EstadoEvento.ADecorrer => "bg-success",
-                EstadoEvento.Terminado => "bg-secondary",
-                EstadoEvento.Cancelado => "bg-danger",
-                _ => "bg-secondary"
+                EstadoEvento.ParaBreve => "estado-parabreve",
+                EstadoEvento.ADecorrer => "estado-decorrer",
+                EstadoEvento.Terminado => "estado-terminado",
+                EstadoEvento.Cancelado => "estado-cancelado",
+                _ => "estado-terminado"
             };
 
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body d-flex flex-column">
+            <div class="col-md-6 col-lg-4">
+                <div class="card evento-list-card h-100">
+                    <div class="card-body d-flex flex-column p-4">
 
                         <div class="d-flex justify-content-between
                                     align-items-start gap-2 mb-2">
@@ -280,7 +318,7 @@ else
                                 @evento.Titulo
                             </h5>
 
-                            <span class="badge @classeEstado">
+                            <span class="estado-badge @classeEstado">
                                 @nomeEstado
                             </span>
                         </div>
@@ -288,23 +326,19 @@ else
                         <div class="mb-3">
                             @if (evento.IsPrivado)
                             {
-                                <span class="badge bg-warning text-dark">
+                                <span class="privacidade-badge privacidade-privado">
                                     Privado
                                 </span>
                             }
                             else
                             {
-                                <span class="badge bg-success">
+                                <span class="privacidade-badge privacidade-publico">
                                     Público
                                 </span>
                             }
                         </div>
 
-                        <p class="card-text text-muted"
-                           style="display: -webkit-box;
-                                  -webkit-line-clamp: 3;
-                                  -webkit-box-orient: vertical;
-                                  overflow: hidden;">
+                        <p class="evento-card-descricao text-muted">
                             @evento.Descricao
                         </p>
 
@@ -341,13 +375,13 @@ else
 
                         @if (lugaresDisponiveis == 0)
                         {
-                            <span class="badge bg-danger align-self-start mb-3">
-                                Lotado
+                            <span class="evento-lotacao evento-lotado mb-3">
+                                Lotação máxima atingida
                             </span>
                         }
                         else
                         {
-                            <span class="text-success small mb-3">
+                            <span class="evento-lotacao evento-disponivel mb-3">
                                 @lugaresDisponiveis
                                 @(lugaresDisponiveis == 1
                                     ? "lugar disponível"
@@ -360,7 +394,7 @@ else
                                 evento.EventosCategorias
                                     .OrderBy(ec => ec.Categoria.Nome))
                             {
-                                <span class="badge bg-secondary mb-1">
+                                <span class="categoria-badge mb-1">
                                     @eventoCategoria.Categoria.Nome
                                 </span>
                             }
@@ -369,7 +403,7 @@ else
                         <div class="mt-auto">
                             <a asp-page="./Details"
                                asp-route-id="@evento.Id"
-                               class="btn btn-outline-primary">
+                               class="btn btn-primary">
                                 Ver detalhes
                             </a>
                         </div>

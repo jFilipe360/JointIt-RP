@@ -5,9 +5,21 @@
     ViewData["Title"] = "Apagar evento";
 }
 
-<h1>Apagar evento</h1>
+<div class="evento-form-header mb-4">
+    <p class="section-kicker mb-1">
+        ATENÇÃO!!
+    </p>
 
-<div class="alert alert-danger">
+    <h1 class="section-title mb-2">
+        Apagar evento
+    </h1>
+
+    <p class="text-muted mb-0">
+        Confirma os dados antes de eliminares definitivamente este evento.
+    </p>
+</div>
+
+<div class="delete-warning mb-4">
     <h4 class="alert-heading">
         Tens a certeza de que pretendes apagar este evento?
     </h4>
@@ -17,11 +29,11 @@
     </p>
 </div>
 
-<div class="card shadow-sm mb-4">
-    <div class="card-body">
-        <h3 class="card-title">
+<div class="card evento-details-card mb-4">
+    <div class="card-body p-4 p-md-5">
+        <h2 class="details-section-title mb-3">
             @Model.Evento.Titulo
-        </h3>
+        </h2>
 
         <p class="card-text">
             @Model.Evento.Descricao
@@ -54,7 +66,7 @@
                     in Model.Evento.EventosCategorias
                         .OrderBy(ec => ec.Categoria.Nome))
                 {
-                    <span class="badge bg-secondary">
+                    <span class="categoria-badge mb-1">
                         @eventoCategoria.Categoria.Nome
                     </span>
                 }
@@ -64,16 +76,17 @@
 </div>
 
 <form method="post"
-      asp-route-id="@Model.Evento.Id">
+      asp-route-id="@Model.Evento.Id"
+      class="delete-actions">
 
     <button type="submit"
-            class="btn btn-danger">
+            class="btn btn-danger px-4">
         Apagar definitivamente
     </button>
 
     <a asp-page="./Details"
        asp-route-id="@Model.Evento.Id"
-       class="btn btn-secondary">
+       class="btn btn-secondary px-4">
         Cancelar
     </a>
 </form>

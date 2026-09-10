@@ -7,10 +7,16 @@
     ViewData["Title"] = "Convites";
 }
 
-<div class="mb-4">
-    <h1>Convites</h1>
+<div class="mb-5">
+    <p class="section-kicker mb-1">
+        EVENTOS PRIVADOS
+    </p>
 
-    <p class="text-muted">
+    <h1 class="section-title mb-2">
+        Convites
+    </h1>
+
+    <p class="text-muted mb-0">
         Gere os convites recebidos para eventos privados.
     </p>
 </div>
@@ -29,17 +35,37 @@
     </div>
 }
 
-<h2 class="mb-3">Convites pendentes</h2>
+<div class="convites-section-header mb-4">
+    <div>
+        <p class="section-kicker mb-1">
+            A AGUARDAR RESPOSTA
+        </p>
+
+        <h2 class="h4 fw-bold mb-0">
+            Convites pendentes
+        </h2>
+    </div>
+
+    <span class="resultados-count">
+        @Model.ConvitesPendentes.Count
+    </span>
+</div>
 
 @if (Model.ConvitesPendentes.Count == 0)
 {
-    <div class="alert alert-info">
-        Não tens convites pendentes.
+    <div class="eventos-empty-state mb-5">
+        <h3 class="h5 fw-bold mb-2">
+            Nenhum convite pendente
+        </h3>
+
+        <p class="text-muted mb-0">
+            Não tens convites para responder neste momento.
+        </p>
     </div>
 }
 else
 {
-    <div class="row mb-5">
+    <div class="row g-4 mb-5">
         @foreach (var convite in Model.ConvitesPendentes)
         {
             var avatarEmissor = new AvatarUtilizadorViewModel
@@ -48,9 +74,9 @@ else
                 FotoPerfil = convite.Emissor.FotoPerfil,
                 Tamanho = 60
             };
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
+            <div class="col-md-6 col-lg-4">
+                <div class="card convite-card convite-pendente-card h-100">
+                    <div class="card-body d-flex flex-column p-4">
                         <div class="d-flex align-items-center gap-3 mb-3">
                             <partial name="_UserAvatar"
                                      model="avatarEmissor" />
@@ -63,11 +89,11 @@ else
                                 </div>
                             </div>
                         </div>
-                        <h5 class="card-title">
+                        <h3 class="h5 fw-bold convite-evento-titulo">
                             @convite.Evento.Titulo
-                        </h5>
+                        </h3>
 
-                        <p class="card-text">
+                        <p class="evento-card-descricao text-muted">
                             @convite.Evento.Descricao
                         </p>
 
@@ -92,14 +118,16 @@ else
                                 "dd/MM/yyyy HH:mm")
                         </p>
 
-                        <span class="badge bg-warning text-dark mb-3">
-                            Pendente
-                        </span>
+                        <div class="mb-3">
+                            <span class="convite-status convite-status-pendente">
+                                Pendente
+                            </span>
+                        </div>
 
-                        <div class="d-flex flex-wrap gap-2">
+                        <div class="d-flex flex-wrap gap-2 mt-auto convite-actions">
                             <a asp-page="/Eventos/Details"
                                asp-route-id="@convite.EventoId"
-                               class="btn btn-outline-primary">
+                               class="btn btn-primary">
                                 Ver evento
                             </a>
 
@@ -108,7 +136,7 @@ else
                                   asp-route-id="@convite.Id">
 
                                 <button type="submit"
-                                        class="btn btn-success">
+                                        class="btn btn-outline-primary">
                                     Aceitar
                                 </button>
                             </form>
@@ -131,17 +159,37 @@ else
     </div>
 }
 
-<h2 class="mb-3">Histórico</h2>
+<div class="convites-section-header mb-4">
+    <div>
+        <p class="section-kicker mb-1">
+            HISTÓRICO
+        </p>
+
+        <h2 class="h4 fw-bold mb-0">
+            Convites respondidos
+        </h2>
+    </div>
+
+    <span class="resultados-count">
+        @Model.HistoricoConvites.Count
+    </span>
+</div>
 
 @if (Model.HistoricoConvites.Count == 0)
 {
-    <div class="alert alert-info">
-        Ainda não tens convites respondidos.
+    <div class="eventos-empty-state">
+        <h3 class="h5 fw-bold mb-2">
+            Sem histórico
+        </h3>
+
+        <p class="text-muted mb-0">
+            Ainda não tens convites respondidos.
+        </p>
     </div>
 }
 else
 {
-    <div class="row">
+    <div class="row g-4">
         @foreach (var convite in Model.HistoricoConvites)
         {
             var avatarEmissor = new AvatarUtilizadorViewModel
@@ -150,9 +198,9 @@ else
                 FotoPerfil = convite.Emissor.FotoPerfil,
                 Tamanho = 50
             };
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
+            <div class="col-md-6 col-lg-4">
+                <div class="card convite-card h-100">
+                    <div class="card-body d-flex flex-column p-4">
                         <div class="d-flex align-items-center gap-3 mb-3">
                             <partial name="_UserAvatar"
                                      model="avatarEmissor" />
@@ -163,9 +211,9 @@ else
                                 @convite.Emissor.Nome
                             </a>
                         </div>
-                        <h5 class="card-title">
+                        <h3 class="h5 fw-bold convite-evento-titulo">
                             @convite.Evento.Titulo
-                        </h5>
+                        </h3>
 
                         <p class="mb-1">
                             <strong>Criador:</strong>
@@ -189,21 +237,21 @@ else
 
                         @if (convite.Estado == EstadoPedido.Aceite)
                         {
-                            <span class="badge bg-success mb-3">
+                            <span class="convite-status convite-status-aceite mb-3">
                                 Aceite
                             </span>
 
                             <div>
                                 <a asp-page="/Eventos/Details"
                                    asp-route-id="@convite.EventoId"
-                                   class="btn btn-outline-primary">
+                                   class="btn btn-primary">
                                     Ver evento
                                 </a>
                             </div>
                         }
                         else
                         {
-                            <span class="badge bg-danger">
+                            <span class="convite-status convite-status-rejeitado">
                                 Rejeitado
                             </span>
                         }
