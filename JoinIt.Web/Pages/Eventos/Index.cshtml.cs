@@ -78,7 +78,10 @@ namespace JoinIt.Web.Pages.Eventos
                 query = query.Where(e =>
                     e.Titulo.Contains(pesquisa) ||
                     e.Descricao.Contains(pesquisa) ||
-                    e.Local.Contains(pesquisa) ||
+                    (
+                        e.Local != null &&
+                        e.Local.Contains(pesquisa)
+                    ) ||
                     (
                         e.Morada != null &&
                         e.Morada.Contains(pesquisa)

@@ -1440,3 +1440,75 @@ body {
         max-width: none;
     }
 }
+
+/* ---------- TIPO DE EVENTO ---------- */
+
+.evento-tipo-option {
+    padding: 1rem 1.1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+    .evento-tipo-option .form-check-input:checked {
+        border-color: var(--gold);
+        background-color: var(--gold);
+    }
+
+    .evento-tipo-option .form-check-input:focus {
+        border-color: var(--gold);
+        box-shadow: 0 0 0 0.2rem rgba(212, 175, 55, 0.15);
+    }
+
+/* ---------- EVENTOS ONLINE ---------- */
+
+.evento-tipo-badge {
+    display: inline-block;
+    padding: 0.45rem 0.75rem;
+    border-radius: 50rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.evento-online {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.evento-presencial {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.evento-online-card {
+    border-top: 4px solid var(--gold);
+}
+
+.evento-online-access {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid #dbeafe;
+    border-radius: 14px;
+    background: #eff6ff;
+}
+
+.evento-online-private {
+    padding: 1rem 1.25rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #f8fafc;
+}
+
+@media (max-width: 576px) {
+    .evento-online-access {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+        .evento-online-access .btn {
+            width: 100%;
+        }
+}

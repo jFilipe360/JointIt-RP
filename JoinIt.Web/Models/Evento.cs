@@ -28,11 +28,20 @@ namespace JoinIt.Web.Models
         [Display(Name = "Data e hora de fim")]
         public DateTime DataFim { get; set; }
 
-        [Required(ErrorMessage = "O local é obrigatório.")]
+        [Display(Name = "Evento online")]
+        public bool IsOnline { get; set; }
+
+        [Display(Name = "Link do evento online")]
+        [StringLength(
+            500,
+            ErrorMessage = "O link não pode ultrapassar 500 caracteres.")]
+        [Url(ErrorMessage = "Introduz um link válido.")]
+        public string? LinkOnline { get; set; }
+
         [StringLength(
             150,
             ErrorMessage = "O local não pode ultrapassar 150 caracteres.")]
-        public string Local { get; set; } = string.Empty;
+        public string? Local { get; set; } = string.Empty;
 
         [StringLength(
             250,
@@ -91,18 +100,40 @@ namespace JoinIt.Web.Models
                     new[] { nameof(DataFim) });
             }
 
-            bool temLatitude = Latitude.HasValue;
-            bool temLongitude = Longitude.HasValue;
-
-            if (temLatitude != temLongitude)
+            if (IsOnline)
             {
-                yield return new ValidationResult(
-                    "A latitude e a longitude devem ser preenchidas em conjunto.",
-                    new[]
-                    {
-                        nameof(Latitude),
-                        nameof(Longitude)
-                    });
+                if (string.IsNullOrWhiteSpace(LinkOnline))
+                {
+                    yield return new ValidationResult(
+                        "O link do evento é obrigatório para eventos online.",
+                        new[] { nameof(LinkOnline) });
+                }
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(Local))
+                {
+                    yield return new ValidationResult(
+                        "O local é obrigatório para eventos presenciais.",
+                        new[] { nameof(Local) });
+                }
+            }
+
+            if (!IsOnline)
+            {
+                bool temLatitude = Latitude.HasValue;
+                bool temLongitude = Longitude.HasValue;
+
+                if (temLatitude != temLongitude)
+                {
+                    yield return new ValidationResult(
+                        "A latitude e a longitude devem ser preenchidas em conjunto.",
+                        new[]
+                        {
+                            nameof(Latitude),
+                            nameof(Longitude)
+                        });
+                }
             }
         }
     }

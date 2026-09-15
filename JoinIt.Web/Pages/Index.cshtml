@@ -99,9 +99,18 @@
                                     }
                                 </div>
 
-                                <small class="text-muted text-nowrap">
-                                    @evento.DataHora.ToString("dd/MM/yyyy")
-                                </small>
+                                <div class="d-flex flex-column align-items-end gap-2">
+                                    <span class="evento-tipo-badge
+                                        @(evento.IsOnline
+                                    ? "evento-online"
+                                    : "evento-presencial")">
+                                        @(evento.IsOnline ? "Online" : "Presencial")
+                                    </span>
+
+                                    <small class="text-muted text-nowrap">
+                                        @evento.DataHora.ToString("dd/MM/yyyy")
+                                    </small>
+                                </div>
                             </div>
 
                             <h3 class="h5 fw-bold mb-2">
@@ -121,8 +130,13 @@
                                 </div>
 
                                 <div>
-                                    <strong>Local</strong>
-                                    <span>@evento.Local</span>
+                                    <strong>@(evento.IsOnline ? "Tipo" : "Local")</strong>
+
+                                    <span>
+                                        @(evento.IsOnline
+                                            ? "Online"
+                                            : evento.Local)
+                                    </span>
                                 </div>
 
                                 <div>

@@ -170,6 +170,12 @@ else
                                     Público
                                 </span>
                             }
+                            <span class="evento-tipo-badge
+                                @(evento.IsOnline
+                                    ? "evento-online"
+                                    : "evento-presencial")">
+                                @(evento.IsOnline ? "Online" : "Presencial")
+                            </span>
                         </div>
 
                         <p class="evento-card-descricao text-muted">
@@ -186,10 +192,20 @@ else
                             @evento.DataFim.ToString("dd/MM/yyyy HH:mm")
                         </p>
 
-                        <p class="mb-1">
-                            <strong>Local:</strong>
-                            @evento.Local
-                        </p>
+                        @if (evento.IsOnline)
+                        {
+                            <p class="mb-1">
+                                <strong>Tipo:</strong>
+                                Online
+                            </p>
+                        }
+                        else
+                        {
+                            <p class="mb-1">
+                                <strong>Local:</strong>
+                                @evento.Local
+                            </p>
+                        }
 
                         <p class="mb-1">
                             <strong>Participantes:</strong>
@@ -336,6 +352,12 @@ else
                                     Público
                                 </span>
                             }
+                            <span class="evento-tipo-badge
+                                @(evento.IsOnline
+                                     ? "evento-online"
+                                     : "evento-presencial")">
+                                @(evento.IsOnline ? "Online" : "Presencial")
+                            </span>
                         </div>
 
                         <p class="evento-card-descricao text-muted">
@@ -362,10 +384,20 @@ else
                             @evento.DataFim.ToString("dd/MM/yyyy HH:mm")
                         </p>
 
-                        <p class="mb-1">
-                            <strong>Local:</strong>
-                            @evento.Local
-                        </p>
+                        @if (evento.IsOnline)
+                        {
+                            <p class="mb-1">
+                                <strong>Tipo:</strong>
+                                Online
+                            </p>
+                        }
+                        else
+                        {
+                            <p class="mb-1">
+                                <strong>Local:</strong>
+                                @evento.Local
+                            </p>
+                        }
 
                         <p class="mb-1">
                             <strong>Participantes:</strong>

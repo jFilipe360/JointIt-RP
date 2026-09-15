@@ -144,6 +144,29 @@
                         </span>
                     </div>
 
+                    <div class="mb-4">
+                        <label class="form-label">
+                            Tipo de evento
+                        </label>
+
+                        <div class="evento-tipo-option">
+                            <div class="form-check form-switch mb-0">
+                                <input asp-for="Input.IsOnline"
+                                       class="form-check-input"
+                                       id="eventoOnline" />
+
+                                <label asp-for="Input.IsOnline"
+                                       class="form-check-label fw-semibold">
+                                    Evento online
+                                </label>
+                            </div>
+
+                            <div class="form-text">
+                                Ativa esta opção se o evento decorrer totalmente online.
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="evento-privacidade-option">
                         <div class="form-check">
                             <input asp-for="Input.IsPrivado"
@@ -163,80 +186,116 @@
                 </div>
             </div>
 
-            <div class="card evento-form-card mb-4">
-                <div class="card-body p-4 p-md-5">
+            <div id="blocoOnline" style="display: none;">
 
-                    <h2 class="evento-form-section-title">
-                        Localização
-                    </h2>
+                <div class="card evento-form-card mb-4">
 
-                    <div class="mb-3">
-                        <label asp-for="Input.Local"
-                               class="form-label">
-                        </label>
+                    <div class="card-body p-4 p-md-5">
 
-                        <input asp-for="Input.Local"
-                               class="form-control"
-                               placeholder="Ex.: Biblioteca Municipal" />
+                        <h2 class="evento-form-section-title">
+                            Evento online
+                        </h2>
 
-                        <span asp-validation-for="Input.Local"
-                              class="text-danger">
-                        </span>
+                        <div class="mb-3">
+                            <label asp-for="Input.LinkOnline"
+                                   class="form-label">
+                            </label>
+
+                            <input asp-for="Input.LinkOnline"
+                                   type="url"
+                                   class="form-control"
+                                   placeholder="https://meet.google.com/..." />
+
+                            <div class="form-text">
+                                Introduz o link do Evento.
+                            </div>
+
+                            <span asp-validation-for="Input.LinkOnline"
+                                  class="text-danger">
+                            </span>
+                        </div>
+
                     </div>
+                </div>
 
-                    <div class="mb-3">
-                        <label asp-for="Input.Morada"
-                               class="form-label">
-                        </label>
+            </div>
 
-                        <input asp-for="Input.Morada"
-                               class="form-control"
-                               placeholder="Ex.: Rua Principal, 25, Porto" />
+            <div id="blocoPresencial">
+                <div class="card evento-form-card mb-4">
+                    <div class="card-body p-4 p-md-5">
 
-                        <span asp-validation-for="Input.Morada"
-                              class="text-danger">
-                        </span>
+                        <h2 class="evento-form-section-title">
+                            Localização
+                        </h2>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.Local"
+                                   class="form-label">
+                            </label>
+
+                            <input asp-for="Input.Local"
+                                   class="form-control"
+                                   placeholder="Ex.: Biblioteca Municipal" />
+
+                            <span asp-validation-for="Input.Local"
+                                  class="text-danger">
+                            </span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.Morada"
+                                   class="form-label">
+                            </label>
+
+                            <input asp-for="Input.Morada"
+                                   class="form-control"
+                                   placeholder="Ex.: Rua Principal, 25, Porto" />
+
+                            <span asp-validation-for="Input.Morada"
+                                  class="text-danger">
+                            </span>
+                        </div>
+
+                        <p class="text-muted mb-2">
+                            Clica no mapa para selecionar a localização exata.
+                        </p>
+
+                        <div id="mapa"
+                             class="event-form-map mb-3">
+                        </div>
+
+                        <input asp-for="Input.Latitude"
+                               type="hidden"
+                               id="latitude" />
+
+                        <input asp-for="Input.Longitude"
+                               type="hidden"
+                               id="longitude" />
+
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <button type="button"
+                                    id="limparLocalizacao"
+                                    class="btn btn-sm btn-outline-secondary">
+                                Limpar localização
+                            </button>
+
+                            <span id="coordenadasSelecionadas"
+                                  class="text-muted small">
+                                Nenhuma localização selecionada.
+                            </span>
+                        </div>
+
+                        <div class="mt-2">
+                            <span asp-validation-for="Input.Latitude"
+                                  class="text-danger d-block">
+                            </span>
+
+                            <span asp-validation-for="Input.Longitude"
+                                  class="text-danger d-block">
+                            </span>
+                        </div>
+
                     </div>
-
-                    <p class="text-muted mb-2">
-                        Clica no mapa para selecionar a localização exata.
-                    </p>
-
-                    <div id="mapa"
-                         class="event-form-map mb-3">
-                    </div>
-
-                    <input asp-for="Input.Latitude"
-                           type="hidden"
-                           id="latitude" />
-
-                    <input asp-for="Input.Longitude"
-                           type="hidden"
-                           id="longitude" />
-
-                    <div class="d-flex flex-wrap align-items-center gap-2">
-                        <button type="button"
-                                id="limparLocalizacao"
-                                class="btn btn-sm btn-outline-secondary">
-                            Limpar localização
-                        </button>
-
-                        <span id="coordenadasSelecionadas"
-                              class="text-muted small">
-                            Nenhuma localização selecionada.
-                        </span>
-                    </div>
-
-                    <div class="mt-2">
-                        <span asp-validation-for="Input.Latitude"
-                              class="text-danger d-block">
-                        </span>
-
-                        <span asp-validation-for="Input.Longitude"
-                              class="text-danger d-block">
-                        </span>
-                    </div>
-
                 </div>
             </div>
 
@@ -285,6 +344,15 @@
 
             const limparBotao =
                 document.getElementById("limparLocalizacao");
+
+            const eventoOnline =
+                document.getElementById("eventoOnline");
+
+            const blocoOnline =
+                document.getElementById("blocoOnline");
+
+            const blocoPresencial =
+                document.getElementById("blocoPresencial");
 
             const mapa = L.map("mapa").setView(
                 [latitudeInicial, longitudeInicial],
@@ -362,6 +430,28 @@
                     marcador = null;
                 }
             });
+
+            function atualizarTipoEvento() {
+                const online = eventoOnline.checked;
+
+                blocoOnline.style.display =
+                    online ? "block" : "none";
+
+                blocoPresencial.style.display =
+                    online ? "none" : "block";
+
+                if (!online) {
+                    window.setTimeout(function () {
+                        mapa.invalidateSize();
+                    }, 0);
+                }
+            }
+
+            eventoOnline.addEventListener(
+                "change",
+                atualizarTipoEvento);
+
+            atualizarTipoEvento();
         });
     </script>
 }

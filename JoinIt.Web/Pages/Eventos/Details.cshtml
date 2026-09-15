@@ -29,6 +29,7 @@
         $"{ViewContext.HttpContext.Request.QueryString}";
 
     bool temCoordenadas =
+        !Model.Evento.IsOnline &&
         Model.Evento.Latitude.HasValue &&
         Model.Evento.Longitude.HasValue;
 
@@ -104,6 +105,18 @@
         </div>
 
         <div class="evento-details-badges">
+            @if (Model.Evento.IsOnline)
+            {
+                <span class="evento-tipo-badge evento-online">
+                    Online
+                </span>
+            }
+            else
+            {
+                <span class="evento-tipo-badge evento-presencial">
+                    Presencial
+                </span>
+            }
             @if (Model.Evento.IsPrivado)
             {
                 <span class="evento-privacidade evento-privado">
@@ -180,69 +193,126 @@
             </div>
         </div>
 
-        <div class="card evento-details-card mb-4">
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="details-section-title mb-0">
-                        Participantes
-                    </h2>
+        @if (!Model.Evento.IsOnline)
+        {
+            <div class="card evento-details-card mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h2 class="details-section-title mb-0">
+                            Participantes
+                        </h2>
 
-                    <span class="participantes-count">
-                        @Model.NumeroParticipantes /
-                        @Model.Evento.NumMaxParticipantes
-                    </span>
-                </div>
+                        <span class="participantes-count">
+                            @Model.NumeroParticipantes /
+                            @Model.Evento.NumMaxParticipantes
+                        </span>
+                    </div>
 
-                @if (Model.NumeroParticipantes == 0)
-                {
-                    <p class="text-muted mb-0">
-                        Ainda não existem participantes.
-                    </p>
-                }
-                else
-                {
-                    <ul class="list-group list-group-flush">
-                        @foreach (var participante in
-                            Model.Evento.Participantes
-                                .Where(p =>
-                                    p.Estado == EstadoPedido.Aceite)
-                                .OrderBy(p =>
-                                    p.Utilizador.Nome))
-                        {
-                            <li class="list-group-item participante-item px-0">
-                                <div class="d-flex align-items-center gap-3">
+                    @if (Model.NumeroParticipantes == 0)
+                    {
+                        <p class="text-muted mb-0">
+                            Ainda não existem participantes.
+                        </p>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var participante in
+                                                                            Model.Evento.Participantes
+                                                                                .Where(p =>
+                                                                                    p.Estado == EstadoPedido.Aceite)
+                                                                                .OrderBy(p =>
+                                                                                    p.Utilizador.Nome))
+                            {
+                                <li class="list-group-item participante-item px-0">
+                                    <div class="d-flex align-items-center gap-3">
 
-                                    <partial name="_UserAvatar"
-                                             model="new JoinIt.Web.ViewModels.AvatarUtilizadorViewModel
+                                        <partial name="_UserAvatar"
+                                        model="new JoinIt.Web.ViewModels.AvatarUtilizadorViewModel
                                              {
                                                  Nome = participante.Utilizador.Nome,
                                                  FotoPerfil = participante.Utilizador.FotoPerfil,
                                                  Tamanho = 42
                                              }" />
 
-                                    <div>
-                                        <a asp-page="/Users/Details"
-                                           asp-route-id="@participante.UtilizadorId"
-                                           class="text-decoration-none">
-                                            @participante.Utilizador.Nome
-                                        </a>
+                                        <div>
+                                            <a asp-page="/Users/Details"
+                                            asp-route-id="@participante.UtilizadorId"
+                                            class="text-decoration-none">
+                                                @participante.Utilizador.Nome
+                                            </a>
 
-                                        @if (participante.UtilizadorId ==
-                                             Model.Evento.CriadorId)
-                                        {
-                                            <span class="badge bg-primary ms-2">
-                                                Criador
-                                            </span>
-                                        }
+                                            @if (participante.UtilizadorId ==
+                                                                                                                 Model.Evento.CriadorId)
+                                            {
+                                                <span class="badge bg-primary ms-2">
+                                                    Criador
+                                                </span>
+                                            }
+                                        </div>
+
                                     </div>
-
-                                </div>
-                            </li>
-                        }
-                    </ul>
-                }
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
             </div>
-        </div>
+        }
+        @if (Model.Evento.IsOnline)
+        {
+            <div class="card evento-details-card evento-online-card mb-4">
+                <div class="card-body p-4">
+
+                    <h4 class="details-section-title">
+                        Evento online
+                    </h4>
+
+                    <p class="text-muted mb-3">
+                        Este evento decorre totalmente online.
+                    </p>
+
+                    @if (Model.PodeVerLinkOnline &&
+                         !string.IsNullOrWhiteSpace(Model.Evento.LinkOnline))
+                    {
+                        <div class="evento-online-access">
+                            <div>
+                                <strong>Link de acesso</strong>
+
+                                <p class="text-muted small mb-0">
+                                    @if (Model.PodeGerir)
+                                    {
+                                        <text>Link de acesso do teu evento.</text>
+                                    }
+                                    else
+                                    {
+                                        <text>Este link está disponível porque participas no evento.</text>
+                                    }
+                                </p>
+                            </div>
+
+                            <a href="@Model.Evento.LinkOnline"
+                               target="_blank"
+                               rel="noopener noreferrer"
+                               class="btn btn-primary">
+                                Entrar no evento
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="evento-online-private">
+                            <strong>Link reservado aos participantes</strong>
+
+                            <p class="text-muted small mb-0">
+                                Participa no evento para obteres acesso ao link.
+                            </p>
+                        </div>
+                    }
+
+                </div>
+            </div>
+        }
 
     </div>
 
@@ -318,12 +388,23 @@
                     </dd>
 
                     <dt class="col-sm-5">
-                        Local
+                        Tipo
                     </dt>
 
                     <dd class="col-sm-7">
-                        @Model.Evento.Local
+                        @(Model.Evento.IsOnline ? "Online" : "Presencial")
                     </dd>
+
+                    @if (!Model.Evento.IsOnline)
+                    {
+                        <dt class="col-sm-5">
+                            Local
+                        </dt>
+
+                        <dd class="col-sm-7">
+                            @Model.Evento.Local
+                        </dd>
+                    }
                 </dl>
             </div>
         </div>
@@ -338,7 +419,7 @@
                     Model.Evento.EventosCategorias
                         .OrderBy(ec => ec.Categoria.Nome))
                 {
-                    <span class="categoria-badge bg-secondary mb-1">
+                    <span class="categoria-badge mb-1">
                         @eventoCategoria.Categoria.Nome
                     </span>
                 }

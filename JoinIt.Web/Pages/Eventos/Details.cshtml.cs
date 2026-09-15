@@ -32,6 +32,9 @@ namespace JoinIt.Web.Pages.Eventos
         public bool PodeGerir { get; private set; }
         public bool PodeParticipar { get; private set; }
         public bool EventoCheio { get; private set; }
+        public bool PodeVerLinkOnline =>
+            Evento.IsOnline &&
+            (PodeGerir || EstaAParticipar);
         public int NumeroParticipantes { get; private set; }
         public EstadoPedido? EstadoParticipacaoAtual { get; private set; }
         public bool EstaAParticipar => EstadoParticipacaoAtual == EstadoPedido.Aceite;

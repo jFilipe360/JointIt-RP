@@ -15,7 +15,11 @@ public class EventoDetalhesDto
 
     public DateTime DataFim { get; set; }
 
-    public string Local { get; set; } = string.Empty;
+    public bool IsOnline { get; set; }
+
+    public string? LinkOnline { get; set; }
+
+    public string? Local { get; set; }
 
     public string? Morada { get; set; }
 

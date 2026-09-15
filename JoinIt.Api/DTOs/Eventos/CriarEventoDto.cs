@@ -18,9 +18,13 @@ public class CriarEventoDto
     [Required]
     public DateTime DataFim { get; set; }
 
-    [Required]
+    public bool IsOnline { get; set; }
+
+    [StringLength(500)]
+    public string? LinkOnline { get; set; }
+
     [StringLength(150)]
-    public string Local { get; set; } = string.Empty;
+    public string? Local { get; set; }
 
     [StringLength(250)]
     public string? Morada { get; set; }

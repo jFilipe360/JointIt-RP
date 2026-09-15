@@ -64,7 +64,8 @@ public class EventosController : ControllerBase
             query = query.Where(e =>
                 e.Titulo.Contains(pesquisa) ||
                 e.Descricao.Contains(pesquisa) ||
-                e.Local.Contains(pesquisa) ||
+                (e.Local != null &&
+                e.Local.Contains(pesquisa)) ||
                 (e.Morada != null && e.Morada.Contains(pesquisa)));
         }
 
@@ -101,6 +102,7 @@ public class EventosController : ControllerBase
                 Descricao = e.Descricao,
                 DataHora = e.DataHora,
                 DataFim = e.DataFim,
+                IsOnline = e.IsOnline,
                 Local = e.Local,
                 Morada = e.Morada,
                 IsPrivado = e.IsPrivado,
@@ -136,9 +138,31 @@ public class EventosController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<ActionResult<EventoDetalhesDto>> GetEvento(int id)
     {
+        string? utilizadorId =
+            User.FindFirstValue(ClaimTypes.NameIdentifier);
+
         var evento = await _context.Eventos
             .AsNoTracking()
-            .Where(e => e.Id == id && !e.IsPrivado)
+            .Where(e =>
+                e.Id == id &&
+                (
+                    !e.IsPrivado ||
+                    (
+                        utilizadorId != null &&
+                        (
+                            e.CriadorId == utilizadorId ||
+                            e.Participantes.Any(p =>
+                                p.UtilizadorId == utilizadorId &&
+                                p.Estado == EstadoPedido.Aceite) ||
+                            e.Convites.Any(c =>
+                                c.RecetorId == utilizadorId &&
+                                (
+                                    c.Estado == EstadoPedido.Pendente ||
+                                    c.Estado == EstadoPedido.Aceite
+                                ))
+                        )
+                    )
+                ))
             .Select(e => new EventoDetalhesDto
             {
                 Id = e.Id,
@@ -146,18 +170,41 @@ public class EventosController : ControllerBase
                 Descricao = e.Descricao,
                 DataHora = e.DataHora,
                 DataFim = e.DataFim,
+
+                IsOnline = e.IsOnline,
+
+                LinkOnline =
+                    e.IsOnline &&
+                    utilizadorId != null &&
+                    (
+                        e.CriadorId == utilizadorId ||
+                        e.Participantes.Any(p =>
+                            p.UtilizadorId == utilizadorId &&
+                            p.Estado == EstadoPedido.Aceite)
+                    )
+                        ? e.LinkOnline
+                        : null,
+
                 Local = e.Local,
                 Morada = e.Morada,
                 Latitude = e.Latitude,
                 Longitude = e.Longitude,
+
                 IsPrivado = e.IsPrivado,
                 NumMaxParticipantes = e.NumMaxParticipantes,
-                NumParticipantes = e.Participantes.Count(),
+
+                NumParticipantes = e.Participantes.Count(
+                    p => p.Estado == EstadoPedido.Aceite),
+
                 VagasDisponiveis =
-                    e.NumMaxParticipantes - e.Participantes.Count(),
+                    e.NumMaxParticipantes -
+                    e.Participantes.Count(
+                        p => p.Estado == EstadoPedido.Aceite),
+
                 Estado = e.Estado,
                 CriadorId = e.CriadorId,
                 CriadorNome = e.Criador.Nome ?? string.Empty,
+
                 Categorias = e.EventosCategorias
                     .Select(ec => new CategoriaDto
                     {
@@ -214,14 +261,18 @@ public class EventosController : ControllerBase
             });
         }
 
-        var temLatitude = dto.Latitude.HasValue;
-        var temLongitude = dto.Longitude.HasValue;
+        string? erroTipoEvento = ValidarTipoEvento(
+            dto.IsOnline,
+            dto.LinkOnline,
+            dto.Local,
+            dto.Latitude,
+            dto.Longitude);
 
-        if (temLatitude != temLongitude)
+        if (erroTipoEvento is not null)
         {
             return BadRequest(new
             {
-                message = "A latitude e a longitude devem ser preenchidas em conjunto."
+                message = erroTipoEvento
             });
         }
 
@@ -249,12 +300,24 @@ public class EventosController : ControllerBase
             Descricao = dto.Descricao.Trim(),
             DataHora = dto.DataHora,
             DataFim = dto.DataFim,
-            Local = dto.Local.Trim(),
-            Morada = string.IsNullOrWhiteSpace(dto.Morada)
+            IsOnline = dto.IsOnline,
+
+            LinkOnline = dto.IsOnline
+                ? dto.LinkOnline!.Trim()
+                : null,
+            Local = dto.IsOnline
+                ? null
+                : dto.Local!.Trim(),
+            Morada = dto.IsOnline ||
+                    string.IsNullOrWhiteSpace(dto.Morada)
                 ? null
                 : dto.Morada.Trim(),
-            Latitude = dto.Latitude,
-            Longitude = dto.Longitude,
+            Latitude = dto.IsOnline
+                ? null
+                : dto.Latitude,
+            Longitude = dto.IsOnline
+                ? null
+                : dto.Longitude,
             IsPrivado = dto.IsPrivado,
             NumMaxParticipantes = dto.NumMaxParticipantes,
             Estado = EstadoEvento.ParaBreve,
@@ -308,6 +371,7 @@ public class EventosController : ControllerBase
                 Descricao = e.Descricao,
                 DataHora = e.DataHora,
                 DataFim = e.DataFim,
+                IsOnline = e.IsOnline,
                 Local = e.Local,
                 Morada = e.Morada,
                 IsPrivado = e.IsPrivado,
@@ -395,14 +459,18 @@ public class EventosController : ControllerBase
             });
         }
 
-        var temLatitude = dto.Latitude.HasValue;
-        var temLongitude = dto.Longitude.HasValue;
+        string? erroTipoEvento = ValidarTipoEvento(
+            dto.IsOnline,
+            dto.LinkOnline,
+            dto.Local,
+            dto.Latitude,
+            dto.Longitude);
 
-        if (temLatitude != temLongitude)
+        if (erroTipoEvento is not null)
         {
             return BadRequest(new
             {
-                message = "Seleciona uma localização completa no mapa."
+                message = erroTipoEvento
             });
         }
 
@@ -451,16 +519,25 @@ public class EventosController : ControllerBase
             evento.DataHora,
             evento.DataFim,
             evento.Estado);
-
-        evento.Local = dto.Local.Trim();
-        evento.Morada = string.IsNullOrWhiteSpace(dto.Morada)
+        evento.IsOnline = dto.IsOnline;
+        evento.LinkOnline = dto.IsOnline
+            ? dto.LinkOnline!.Trim()
+            : null;
+        evento.Local = dto.IsOnline
+            ? null
+            : dto.Local!.Trim();
+        evento.Morada = dto.IsOnline ||
+                        string.IsNullOrWhiteSpace(dto.Morada)
             ? null
             : dto.Morada.Trim();
-
+        evento.Latitude = dto.IsOnline
+            ? null
+            : dto.Latitude;
+        evento.Longitude = dto.IsOnline
+            ? null
+            : dto.Longitude;
         evento.NumMaxParticipantes = dto.NumMaxParticipantes;
         evento.IsPrivado = dto.IsPrivado;
-        evento.Latitude = dto.Latitude;
-        evento.Longitude = dto.Longitude;
 
         var categoriasParaRemover = evento.EventosCategorias
             .Where(ec => !categoriasValidas.Contains(ec.CategoriaId))
@@ -1027,5 +1104,48 @@ public class EventosController : ControllerBase
         {
             message = "Convite cancelado."
         });
+    }
+
+    private static string? ValidarTipoEvento(
+    bool isOnline,
+    string? linkOnline,
+    string? local,
+    double? latitude,
+    double? longitude)
+    {
+        if (isOnline)
+        {
+            if (string.IsNullOrWhiteSpace(linkOnline))
+            {
+                return "O link é obrigatório para eventos online.";
+            }
+
+            if (!Uri.TryCreate(
+                    linkOnline.Trim(),
+                    UriKind.Absolute,
+                    out Uri? uri) ||
+                (uri.Scheme != Uri.UriSchemeHttp &&
+                 uri.Scheme != Uri.UriSchemeHttps))
+            {
+                return "Introduz um link válido.";
+            }
+
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(local))
+        {
+            return "O local é obrigatório para eventos presenciais.";
+        }
+
+        bool temLatitude = latitude.HasValue;
+        bool temLongitude = longitude.HasValue;
+
+        if (temLatitude != temLongitude)
+        {
+            return "A latitude e a longitude devem ser preenchidas em conjunto.";
+        }
+
+        return null;
     }
 }

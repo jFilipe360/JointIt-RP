@@ -61,12 +61,20 @@ namespace JoinIt.Web.Pages.Eventos
             [Display(Name = "Data e hora de fim")]
             public DateTime DataFim { get; set; }
 
-            [Required(ErrorMessage = "O local é obrigatório.")]
+            [Display(Name = "Evento online")]
+            public bool IsOnline { get; set; }
+
+            [StringLength(
+                500,
+                ErrorMessage = "O link não pode ultrapassar 500 caracteres.")]
+            [Display(Name = "Link do evento online")]
+            public string? LinkOnline { get; set; }
+
             [StringLength(
                 150,
                 ErrorMessage = "O local não pode ultrapassar 150 caracteres.")]
             [Display(Name = "Local")]
-            public string Local { get; set; } = string.Empty;
+            public string? Local { get; set; }
 
             [StringLength(
                 250,
@@ -156,6 +164,8 @@ namespace JoinIt.Web.Pages.Eventos
                 Descricao = evento.Descricao,
                 DataHora = evento.DataHora,
                 DataFim = evento.DataFim,
+                IsOnline = evento.IsOnline,
+                LinkOnline = evento.LinkOnline,
                 Local = evento.Local,
                 Morada = evento.Morada,
                 NumMaxParticipantes = evento.NumMaxParticipantes,
@@ -220,7 +230,7 @@ namespace JoinIt.Web.Pages.Eventos
             }
 
             ValidarDatas();
-            ValidarCoordenadas();
+            ValidarTipoEvento();
 
             var categoriasSelecionadas = Input.CategoriasSelecionadas
                 .Distinct()
@@ -269,16 +279,25 @@ namespace JoinIt.Web.Pages.Eventos
                 evento.DataHora,
                 evento.DataFim,
                 evento.Estado);
-            evento.Local = Input.Local.Trim();
-
-            evento.Morada = string.IsNullOrWhiteSpace(Input.Morada)
+            evento.IsOnline = Input.IsOnline;
+            evento.LinkOnline = Input.IsOnline
+                ? Input.LinkOnline!.Trim()
+                : null;
+            evento.Local = Input.IsOnline
+                ? null
+                : Input.Local!.Trim();
+            evento.Morada = Input.IsOnline ||
+                            string.IsNullOrWhiteSpace(Input.Morada)
                 ? null
                 : Input.Morada.Trim();
-
+            evento.Latitude = Input.IsOnline
+                ? null
+                : Input.Latitude;
+            evento.Longitude = Input.IsOnline
+                ? null
+                : Input.Longitude;
             evento.NumMaxParticipantes = Input.NumMaxParticipantes;
             evento.IsPrivado = Input.IsPrivado;
-            evento.Latitude = Input.Latitude;
-            evento.Longitude = Input.Longitude;
 
             AtualizarCategorias(evento, categoriasValidas);
 
@@ -307,6 +326,44 @@ namespace JoinIt.Web.Pages.Eventos
                     "Input.DataFim",
                     "A data de fim deve ser posterior à data de início.");
             }
+        }
+
+        private void ValidarTipoEvento()
+        {
+            if (Input.IsOnline)
+            {
+                if (string.IsNullOrWhiteSpace(Input.LinkOnline))
+                {
+                    ModelState.AddModelError(
+                        "Input.LinkOnline",
+                        "O link é obrigatório para eventos online.");
+
+                    return;
+                }
+
+                if (!Uri.TryCreate(
+                        Input.LinkOnline.Trim(),
+                        UriKind.Absolute,
+                        out Uri? uri) ||
+                    (uri.Scheme != Uri.UriSchemeHttp &&
+                     uri.Scheme != Uri.UriSchemeHttps))
+                {
+                    ModelState.AddModelError(
+                        "Input.LinkOnline",
+                        "Introduz um link válido.");
+                }
+
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(Input.Local))
+            {
+                ModelState.AddModelError(
+                    "Input.Local",
+                    "O local é obrigatório para eventos presenciais.");
+            }
+
+            ValidarCoordenadas();
         }
 
         private void ValidarCoordenadas()

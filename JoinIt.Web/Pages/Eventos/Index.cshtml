@@ -198,7 +198,7 @@
                 “Apenas eventos futuros” é ignorado.
             </div>
 
-            <div class="d-flex flex-wrapgap-2">
+            <div class="d-flex flex-wrap gap-2">
                 <button type="submit"
                         class="btn btn-primary px-4">
                     Aplicar filtros
@@ -302,9 +302,18 @@ else
                     }
                 </div>
 
-                <span class="estado-badge @classeEstado">
-                    @nomeEstado
-                </span>
+                <div class="d-flex flex-column align-items-end gap-2">
+                    <span class="evento-tipo-badge
+                        @(evento.IsOnline
+                    ? "evento-online"
+                    : "evento-presencial")">
+                        @(evento.IsOnline ? "Online" : "Presencial")
+                    </span>
+
+                    <span class="estado-badge @classeEstado">
+                        @nomeEstado
+                    </span>
+                </div>
             </div>
 
             <h3 class="h5 fw-bold mb-2">
@@ -325,8 +334,15 @@ else
                 </div>
 
                 <div class="evento-card-info-row">
-                    <span>Local</span>
-                    <strong>@evento.Local</strong>
+                    <span>
+                        @(evento.IsOnline ? "Tipo" : "Local")
+                    </span>
+
+                    <strong>
+                        @(evento.IsOnline
+                            ? "Online"
+                            : evento.Local)
+                    </strong>
                 </div>
 
                 <div class="evento-card-info-row">
