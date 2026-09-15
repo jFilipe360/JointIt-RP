@@ -1,5 +1,6 @@
 ﻿using JoinIt.Web.Enums;
 using JoinIt.Web.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace JoinIt.Web.Data
@@ -7,10 +8,36 @@ namespace JoinIt.Web.Data
     public static class DbInitializer
     {
         public static async Task InitializeAsync(
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            RoleManager<IdentityRole> roleManager,
+            UserManager<ApplicationUser> userManager,
+            IConfiguration configuration)
         {
             // Garante que as migrations pendentes são aplicadas.
             await context.Database.MigrateAsync();
+
+            const string adminRole = "Admin";
+
+            if (!await roleManager.RoleExistsAsync(adminRole))
+            {
+                await roleManager.CreateAsync(new IdentityRole(adminRole));
+            }
+
+            string? adminEmail = configuration["AdminUser:Email"];
+
+            if (!string.IsNullOrWhiteSpace(adminEmail))
+            {
+                ApplicationUser? adminUser =
+                    await userManager.FindByEmailAsync(adminEmail);
+
+                if (adminUser is not null &&
+                    !await userManager.IsInRoleAsync(adminUser, adminRole))
+                {
+                    await userManager.AddToRoleAsync(
+                        adminUser,
+                        adminRole);
+                }
+            }
 
             string[] nomesCategorias =
             {

@@ -60,6 +60,24 @@
                 @(Model.Evento.IsPrivado ? "Privado" : "Público")
             </dd>
 
+            <dt class="col-sm-3">Tipo</dt>
+            <dd class="col-sm-9">
+                <span class="evento-tipo-badge
+                             @(Model.Evento.IsOnline
+                                 ? "evento-online"
+                                 : "evento-presencial")">
+                    @(Model.Evento.IsOnline ? "Online" : "Presencial")
+                </span>
+            </dd>
+
+            @if (!Model.Evento.IsOnline)
+            {
+                <dt class="col-sm-3">Local</dt>
+                <dd class="col-sm-9">
+                    @Model.Evento.Local
+                </dd>
+            }
+
             <dt class="col-sm-3">Categorias</dt>
             <dd class="col-sm-9">
                 @foreach (var eventoCategoria

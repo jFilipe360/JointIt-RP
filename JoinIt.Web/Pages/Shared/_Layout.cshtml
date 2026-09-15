@@ -57,6 +57,15 @@
                             <li class="nav-item">
                                 @await Component.InvokeAsync("NotificacaoCount")
                             </li>
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-warning"
+                                       asp-page="/Admin/Index">
+                                        Administração
+                                    </a>
+                                </li>
+                            }
                         }
                     </ul>
                     <partial name="_LoginPartial" />

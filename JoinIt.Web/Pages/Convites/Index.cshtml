@@ -93,6 +93,17 @@ else
                             @convite.Evento.Titulo
                         </h3>
 
+                        <div class="mb-2">
+                            <span class="evento-tipo-badge
+                                         @(convite.Evento.IsOnline
+                                             ? "evento-online"
+                                             : "evento-presencial")">
+                                @(convite.Evento.IsOnline
+                                    ? "Online"
+                                    : "Presencial")
+                            </span>
+                        </div>
+
                         <p class="evento-card-descricao text-muted">
                             @convite.Evento.Descricao
                         </p>
@@ -111,6 +122,14 @@ else
                             @convite.Evento.DataHora.ToString(
                                 "dd/MM/yyyy HH:mm")
                         </p>
+
+                        @if (!convite.Evento.IsOnline)
+                        {
+                            <p class="mb-1">
+                                <strong>Local:</strong>
+                                @convite.Evento.Local
+                            </p>
+                        }
 
                         <p class="mb-3">
                             <strong>Convite recebido:</strong>
@@ -215,6 +234,17 @@ else
                             @convite.Evento.Titulo
                         </h3>
 
+                        <div class="mb-2">
+                            <span class="evento-tipo-badge
+                                         @(convite.Evento.IsOnline
+                                             ? "evento-online"
+                                             : "evento-presencial")">
+                                @(convite.Evento.IsOnline
+                                    ? "Online"
+                                    : "Presencial")
+                            </span>
+                        </div>
+
                         <p class="mb-1">
                             <strong>Criador:</strong>
                             @convite.Emissor.Nome
@@ -225,6 +255,14 @@ else
                             @convite.Evento.DataHora.ToString(
                                 "dd/MM/yyyy HH:mm")
                         </p>
+
+                        @if (!convite.Evento.IsOnline)
+                        {
+                            <p class="mb-1">
+                                <strong>Local:</strong>
+                                @convite.Evento.Local
+                            </p>
+                        }
 
                         @if (convite.RespondidoEm.HasValue)
                         {

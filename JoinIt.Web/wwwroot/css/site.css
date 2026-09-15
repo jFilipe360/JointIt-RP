@@ -1512,3 +1512,29 @@ body {
             width: 100%;
         }
 }
+
+/* ---------- ADMIN ---------- */
+
+.admin-table thead th {
+    padding: 1rem 1.25rem;
+    background: #f8fafc;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-table tbody td {
+    padding: 1rem 1.25rem;
+    border-color: #e2e8f0;
+}
+
+.admin-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.admin-table tbody tr:hover {
+    background: #f8fafc;
+}

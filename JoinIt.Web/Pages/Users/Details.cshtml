@@ -93,7 +93,7 @@
                                     Este utilizador enviou-te um pedido de amizade
                                 </span>
 
-                                <a asp-page="/Friends/Index"
+                                <a asp-page="/Amigos/Index"
                                    class="btn btn-sm btn-primary">
                                     Gerir pedido
                                 </a>
@@ -164,6 +164,15 @@ else
                             @evento.Titulo
                         </h5>
 
+                        <div class="mb-2">
+                            <span class="evento-tipo-badge
+                                         @(evento.IsOnline
+                                             ? "evento-online"
+                                             : "evento-presencial")">
+                                @(evento.IsOnline ? "Online" : "Presencial")
+                            </span>
+                        </div>
+
                         <p class="evento-card-descricao text-muted">
                             @evento.Descricao
                         </p>
@@ -173,6 +182,21 @@ else
                             @evento.DataHora.ToString(
                                 "dd/MM/yyyy HH:mm")
                         </p>
+
+                        @if (!evento.IsOnline)
+                        {
+                            <p class="mb-1">
+                                <strong>Local:</strong>
+                                @evento.Local
+                            </p>
+                        }
+                        else
+                        {
+                            <p class="mb-1">
+                                <strong>Localização:</strong>
+                                Online
+                            </p>
+                        }
 
                         <p class="mb-2">
                             <strong>Participantes:</strong>
