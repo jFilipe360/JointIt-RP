@@ -1538,3 +1538,117 @@ body {
 .admin-table tbody tr:hover {
     background: #f8fafc;
 }
+
+/* ---------- NOTIFICAÇÕES EM TEMPO REAL ---------- */
+
+.notificacao-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    margin-left: 0.25rem;
+    padding: 0 0.4rem;
+    border-radius: 50rem;
+    background: var(--gold);
+    color: var(--primary);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+#notificacaoToast {
+    border: 0;
+    border-radius: 14px;
+    box-shadow: 0 12px 35px rgba(15, 23, 42, 0.2);
+}
+
+    #notificacaoToast .toast-header {
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+#notificacaoToastTitulo {
+    color: var(--primary);
+}
+
+.notificacao-toast-clicavel {
+    cursor: pointer;
+}
+
+    .notificacao-toast-clicavel:hover {
+        transform: translateY(-2px);
+        transition: transform 0.15s ease;
+    }
+
+/* ---------- DROPDOWN NOTIFICAÇÕES ---------- */
+
+.notificacoes-navbar-button {
+    color: rgba(255, 255, 255, 0.85);
+    padding: 0.5rem 0.7rem;
+    border: 0;
+}
+
+    .notificacoes-navbar-button:hover {
+        color: var(--gold);
+    }
+
+.notificacao-navbar-count {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50rem;
+    background: var(--gold);
+    color: var(--primary);
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+.notificacoes-dropdown {
+    width: 360px;
+    max-width: calc(100vw - 2rem);
+    border: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 15px 40px rgba(15, 23, 42, 0.2);
+}
+
+.notificacoes-dropdown-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+    background: #fff;
+}
+
+.notificacao-dropdown-item {
+    padding: 0.9rem 1.25rem;
+    border-bottom: 1px solid #e2e8f0;
+    background: #fff;
+}
+
+.notificacao-dropdown-nao-lida {
+    background: #fffbea;
+    border-left: 3px solid var(--gold);
+}
+
+.notificacao-dropdown-mensagem {
+    margin-top: 0.15rem;
+    margin-bottom: 0.3rem;
+    color: var(--muted);
+    font-size: 0.88rem;
+    line-height: 1.35;
+}
+
+.notificacoes-dropdown-vazio {
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--muted);
+}
+
+.notificacoes-dropdown-footer {
+    padding: 0.8rem;
+    background: #f8fafc;
+}

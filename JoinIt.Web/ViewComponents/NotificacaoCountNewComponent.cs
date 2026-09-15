@@ -1,5 +1,6 @@
 ﻿using JoinIt.Web.Data;
 using JoinIt.Web.Models;
+using JoinIt.Web.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -26,7 +27,8 @@ namespace JoinIt.Web.ViewComponents
 
             if (string.IsNullOrEmpty(utilizadorId))
             {
-                return View(0);
+                return View(
+                    new NotificacoesDropdownViewModel());
             }
 
             int numeroNaoLidas = await _context.Notificacoes
@@ -34,6 +36,22 @@ namespace JoinIt.Web.ViewComponents
                 .CountAsync(n =>
                     n.UtilizadorId == utilizadorId &&
                     !n.Lida);
+
+            var notificacoes = await _context.Notificacoes
+                .AsNoTracking()
+                .Where(n =>
+                    n.UtilizadorId == utilizadorId)
+                .OrderByDescending(n => n.CriadoEm)
+                .Take(5)
+                .ToListAsync();
+
+            var model = new NotificacoesDropdownViewModel
+            {
+                NumeroNaoLidas = numeroNaoLidas,
+                Notificacoes = notificacoes
+            };
+
+            return View(model);
 
             return View(numeroNaoLidas);
         }

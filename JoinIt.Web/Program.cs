@@ -57,6 +57,7 @@ app.MapRazorPages()
    .WithStaticAssets();
 
 app.MapHub<ChatHub>("/hubs/chat");
+app.MapHub<NotificacoesHub>("/hubs/notificacoes");
 
 using (var scope = app.Services.CreateScope())
 {

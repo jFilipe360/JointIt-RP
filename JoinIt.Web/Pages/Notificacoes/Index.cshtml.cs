@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
-namespace JoinIt.Web.Pages.Notifications
+namespace JoinIt.Web.Pages.Notificacoes
 {
     [Authorize]
     public class IndexModel : PageModel
@@ -66,6 +66,35 @@ namespace JoinIt.Web.Pages.Notifications
 
             TempData["MensagemSucesso"] =
                 "Notificação marcada como lida.";
+
+            return RedirectToPage();
+        }
+
+        public async Task<IActionResult> OnPostApagarAsync(int id)
+        {
+            string? utilizadorId = _userManager.GetUserId(User);
+
+            if (string.IsNullOrEmpty(utilizadorId))
+            {
+                return Challenge();
+            }
+
+            var notificacao = await _context.Notificacoes
+                .FirstOrDefaultAsync(n =>
+                    n.Id == id &&
+                    n.UtilizadorId == utilizadorId);
+
+            if (notificacao is null)
+            {
+                return NotFound();
+            }
+
+            _context.Notificacoes.Remove(notificacao);
+
+            await _context.SaveChangesAsync();
+
+            TempData["MensagemSucesso"] =
+                "Notificação apagada.";
 
             return RedirectToPage();
         }
@@ -133,6 +162,32 @@ namespace JoinIt.Web.Pages.Notifications
             return RedirectToPage();
         }
 
+        public async Task<IActionResult> OnPostLimparTodasAsync()
+        {
+            string? utilizadorId = _userManager.GetUserId(User);
+
+            if (string.IsNullOrEmpty(utilizadorId))
+            {
+                return Challenge();
+            }
+
+            var notificacoes = await _context.Notificacoes
+                .Where(n => n.UtilizadorId == utilizadorId)
+                .ToListAsync();
+
+            if (notificacoes.Count > 0)
+            {
+                _context.Notificacoes.RemoveRange(notificacoes);
+
+                await _context.SaveChangesAsync();
+            }
+
+            TempData["MensagemSucesso"] =
+                "Todas as notificações foram apagadas.";
+
+            return RedirectToPage();
+        }
+
         private async Task CarregarNotificacoesAsync(
             string utilizadorId)
         {
@@ -143,6 +198,47 @@ namespace JoinIt.Web.Pages.Notifications
                 .ToListAsync();
 
             NumeroNaoLidas = Notificacoes.Count(n => !n.Lida);
+        }
+
+        public async Task<IActionResult> OnPostMarcarDropdownLidasAsync(
+    List<int> ids)
+        {
+            string? utilizadorId =
+                _userManager.GetUserId(User);
+
+            if (string.IsNullOrEmpty(utilizadorId))
+            {
+                return Unauthorized();
+            }
+
+            if (ids.Count == 0)
+            {
+                return new JsonResult(new
+                {
+                    sucesso = true,
+                    marcadas = 0
+                });
+            }
+
+            var notificacoes = await _context.Notificacoes
+                .Where(n =>
+                    n.UtilizadorId == utilizadorId &&
+                    ids.Contains(n.Id) &&
+                    !n.Lida)
+                .ToListAsync();
+
+            foreach (var notificacao in notificacoes)
+            {
+                notificacao.Lida = true;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return new JsonResult(new
+            {
+                sucesso = true,
+                marcadas = notificacoes.Count
+            });
         }
     }
 }

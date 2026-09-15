@@ -1,15 +1,21 @@
 ﻿using JoinIt.Web.Data;
+using JoinIt.Web.Hubs;
 using JoinIt.Web.Models;
+using Microsoft.AspNetCore.SignalR;
 
 namespace JoinIt.Web.Services
 {
     public class NotificacaoService : INotificacaoService
     {
         private readonly ApplicationDbContext _context;
+        private readonly IHubContext<NotificacoesHub> _hubContext;
 
-        public NotificacaoService(ApplicationDbContext context)
+        public NotificacaoService(
+            ApplicationDbContext context,
+            IHubContext<NotificacoesHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         public async Task CriarAsync(
@@ -54,6 +60,19 @@ namespace JoinIt.Web.Services
             _context.Notificacoes.Add(notificacao);
 
             await _context.SaveChangesAsync();
+
+            await _hubContext.Clients
+                .User(utilizadorId)
+                .SendAsync(
+                    "ReceberNotificacao",
+                    new
+                    {
+                        id = notificacao.Id,
+                        titulo = notificacao.Titulo,
+                        mensagem = notificacao.Mensagem,
+                        link = notificacao.Link,
+                        criadoEm = notificacao.CriadoEm
+                    });
         }
     }
 }

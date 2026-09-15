@@ -1,5 +1,5 @@
 ﻿@page
-@model JoinIt.Web.Pages.Notifications.IndexModel
+@model JoinIt.Web.Pages.Notificacoes.IndexModel
 
 @{
     ViewData["Title"] = "Notificações";
@@ -31,16 +31,33 @@
         </p>
     </div>
 
-    @if (Model.NumeroNaoLidas > 0)
+    @if (Model.Notificacoes.Count > 0)
     {
-        <form method="post"
-              asp-page-handler="MarcarTodas">
+        <div class="d-flex flex-wrap gap-2">
 
-            <button type="submit"
-                    class="btn btn-primary px-4">
-                Marcar todas como lidas
-            </button>
-        </form>
+            @if (Model.NumeroNaoLidas > 0)
+            {
+                <form method="post"
+                      asp-page-handler="MarcarTodas">
+
+                    <button type="submit"
+                            class="btn btn-primary px-4">
+                        Marcar todas como lidas
+                    </button>
+                </form>
+            }
+
+            <form method="post"
+                  asp-page-handler="LimparTodas"
+                  onsubmit="return confirm('Pretendes apagar todas as notificações? Esta ação não pode ser anulada.');">
+
+                <button type="submit"
+                        class="btn btn-outline-danger px-4">
+                    Limpar todas
+                </button>
+            </form>
+
+        </div>
     }
 </div>
 
@@ -126,6 +143,17 @@ else
                                 </button>
                             </form>
                         }
+
+                        <form method="post"
+                              asp-page-handler="Apagar"
+                              asp-route-id="@notificacao.Id"
+                              onsubmit="return confirm('Pretendes apagar esta notificação?');">
+
+                            <button type="submit"
+                                    class="btn btn-sm btn-outline-danger">
+                                Apagar
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
