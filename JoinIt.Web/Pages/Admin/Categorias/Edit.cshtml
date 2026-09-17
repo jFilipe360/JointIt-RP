@@ -1,0 +1,80 @@
+﻿@page
+@model JoinIt.Web.Pages.Admin.Categorias.EditModel
+
+@{
+    ViewData["Title"] = "Editar categoria";
+}
+
+<div class="eventos-page-header mb-4">
+    <div>
+        <p class="section-kicker mb-1">
+            ADMINISTRAÇÃO
+        </p>
+
+        <h1 class="section-title mb-2">
+            Editar categoria
+        </h1>
+
+        <p class="text-muted mb-0">
+            Altera o nome da categoria selecionada.
+        </p>
+    </div>
+
+    <a asp-page="./Index"
+       class="btn btn-outline-secondary">
+        Voltar às categorias
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-7">
+
+        <div class="card evento-details-card">
+            <div class="card-body p-4">
+
+                <form method="post">
+
+                    <input type="hidden"
+                           asp-for="Categoria.Id" />
+
+                    <div asp-validation-summary="ModelOnly"
+                         class="text-danger mb-3">
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Categoria.Nome"
+                               class="form-label">
+                            Nome
+                        </label>
+
+                        <input asp-for="Categoria.Nome"
+                               class="form-control" />
+
+                        <span asp-validation-for="Categoria.Nome"
+                              class="text-danger">
+                        </span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit"
+                                class="btn btn-primary">
+                            Guardar alterações
+                        </button>
+
+                        <a asp-page="./Index"
+                           class="btn btn-outline-secondary">
+                            Cancelar
+                        </a>
+                    </div>
+
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

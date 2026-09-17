@@ -49,6 +49,9 @@ namespace JoinIt.Web.Pages.Perfil
             [Display(Name = "Nova fotografia")]
             public IFormFile? Foto { get; set; }
 
+            [Display(Name = "URL da fotografia")]
+            public string? FotoUrl { get; set; }
+
             [Display(Name = "Remover fotografia atual")]
             public bool RemoverFoto { get; set; }
         }
@@ -93,6 +96,26 @@ namespace JoinIt.Web.Pages.Perfil
                 ValidarFoto(Input.Foto);
             }
 
+            if (!string.IsNullOrWhiteSpace(Input.FotoUrl))
+            {
+                Input.FotoUrl = Input.FotoUrl.Trim();
+
+                bool urlValido =
+                    Uri.TryCreate(
+                        Input.FotoUrl,
+                        UriKind.Absolute,
+                        out var uri) &&
+                    (uri.Scheme == Uri.UriSchemeHttp ||
+                     uri.Scheme == Uri.UriSchemeHttps);
+
+                if (!urlValido)
+                {
+                    ModelState.AddModelError(
+                        "Input.FotoUrl",
+                        "Introduz um URL válido começado por http:// ou https://.");
+                }
+            }
+
             if (!ModelState.IsValid)
             {
                 return Page();
@@ -102,11 +125,15 @@ namespace JoinIt.Web.Pages.Perfil
             string? novoCaminhoFoto = caminhoFotoAntiga;
             string? novoCaminhoFisico = null;
 
-            // Uma nova fotografia tem prioridade sobre a remoção.
+            // Uma fotografia carregada tem prioridade sobre o URL.
             if (Input.Foto is not null)
             {
                 (novoCaminhoFoto, novoCaminhoFisico) =
                     await GuardarFotoAsync(Input.Foto);
+            }
+            else if (!string.IsNullOrWhiteSpace(Input.FotoUrl))
+            {
+                novoCaminhoFoto = Input.FotoUrl;
             }
             else if (Input.RemoverFoto)
             {

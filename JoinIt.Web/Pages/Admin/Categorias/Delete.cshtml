@@ -1,0 +1,74 @@
+﻿@page
+@model JoinIt.Web.Pages.Admin.Categorias.DeleteModel
+
+@{
+    ViewData["Title"] = "Apagar categoria";
+}
+
+<div class="eventos-page-header mb-4">
+    <div>
+        <p class="section-kicker mb-1">
+            ADMINISTRAÇÃO
+        </p>
+
+        <h1 class="section-title mb-2">
+            Apagar categoria
+        </h1>
+
+        <p class="text-muted mb-0">
+            Confirma a eliminação da categoria selecionada.
+        </p>
+    </div>
+
+    <a asp-page="./Index"
+       class="btn btn-outline-secondary">
+        Voltar às categorias
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-lg-7">
+
+        <div class="card evento-details-card">
+            <div class="card-body p-4">
+
+                <h2 class="h5 fw-bold mb-3">
+                    Tens a certeza de que queres apagar esta categoria?
+                </h2>
+
+                <p class="text-muted">
+                    Esta ação não pode ser revertida.
+                </p>
+
+                <div class="mb-4">
+                    <span class="text-muted">
+                        Categoria
+                    </span>
+
+                    <div class="fw-semibold fs-5">
+                        @Model.Categoria.Nome
+                    </div>
+                </div>
+
+                <form method="post">
+                    <input type="hidden"
+                           asp-for="Categoria.Id" />
+
+                    <div class="d-flex gap-2">
+                        <button type="submit"
+                                class="btn btn-danger">
+                            Apagar categoria
+                        </button>
+
+                        <a asp-page="./Index"
+                           class="btn btn-outline-secondary">
+                            Cancelar
+                        </a>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+
+    </div>
+</div>
