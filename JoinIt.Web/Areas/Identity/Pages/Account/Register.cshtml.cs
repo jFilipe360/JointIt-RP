@@ -23,21 +23,18 @@ namespace JoinIt.Web.Areas.Identity.Pages.Account
         private readonly IUserStore<ApplicationUser> _userStore;
         private readonly IUserEmailStore<ApplicationUser> _emailStore;
         private readonly ILogger<RegisterModel> _logger;
-        private readonly IEmailSender _emailSender;
 
         public RegisterModel(
             UserManager<ApplicationUser> userManager,
             IUserStore<ApplicationUser> userStore,
             SignInManager<ApplicationUser> signInManager,
-            ILogger<RegisterModel> logger,
-            IEmailSender emailSender)
+            ILogger<RegisterModel> logger)
         {
             _userManager = userManager;
             _userStore = userStore;
             _emailStore = GetEmailStore();
             _signInManager = signInManager;
             _logger = logger;
-            _emailSender = emailSender;
         }
 
         [BindProperty]
@@ -125,47 +122,6 @@ namespace JoinIt.Web.Areas.Identity.Pages.Account
                 {
                     _logger.LogInformation(
                         "Foi criada uma nova conta de utilizador.");
-
-                    var userId =
-                        await _userManager.GetUserIdAsync(user);
-
-                    var code =
-                        await _userManager
-                            .GenerateEmailConfirmationTokenAsync(user);
-
-                    code = WebEncoders.Base64UrlEncode(
-                        Encoding.UTF8.GetBytes(code));
-
-                    var callbackUrl = Url.Page(
-                        "/Account/ConfirmEmail",
-                        pageHandler: null,
-                        values: new
-                        {
-                            area = "Identity",
-                            userId,
-                            code,
-                            returnUrl
-                        },
-                        protocol: Request.Scheme);
-
-                    await _emailSender.SendEmailAsync(
-                        Input.Email,
-                        "Confirmar email",
-                        $"Confirma a tua conta através deste " +
-                        $"<a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>" +
-                        $"link</a>.");
-
-                    if (_userManager.Options
-                        .SignIn.RequireConfirmedAccount)
-                    {
-                        return RedirectToPage(
-                            "RegisterConfirmation",
-                            new
-                            {
-                                email = Input.Email,
-                                returnUrl
-                            });
-                    }
 
                     await _signInManager.SignInAsync(
                         user,

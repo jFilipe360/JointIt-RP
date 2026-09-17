@@ -5,6 +5,7 @@ using JoinIt.Web.Models;
 using JoinIt.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using static System.Net.WebRequestMethods;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +31,13 @@ builder.Services.AddScoped<
     IEstadoEventoService,
     EstadoEventoService>();
 
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection("EmailSettings"));
+
+builder.Services.AddTransient<
+    Microsoft.AspNetCore.Identity.UI.Services.IEmailSender,
+    EmailSender>();
+
 builder.Services.AddSignalR();
 
 var app = builder.Build();
@@ -50,6 +58,38 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
+app.Use(async (context, next) =>
+{
+    string path = context.Request.Path.Value ?? string.Empty;
+
+    string[] paginasIdentityBloqueadas =
+    {
+        "/Identity/Account/Manage/TwoFactorAuthentication",
+        "/Identity/Account/Manage/EnableAuthenticator",
+        "/Identity/Account/Manage/Disable2fa",
+        "/Identity/Account/Manage/GenerateRecoveryCodes",
+        "/Identity/Account/Manage/ResetAuthenticator",
+        "/Identity/Account/Manage/PersonalData",
+        "/Identity/Account/Manage/Email",
+        "/Identity/Account/Manage",
+        "/Identity/Account/ResendEmailConfirmation"
+    };
+
+    if (paginasIdentityBloqueadas.Any(
+        pagina => path.Equals(
+            pagina,
+            StringComparison.OrdinalIgnoreCase)))
+    {
+        context.Response.StatusCode =
+            StatusCodes.Status404NotFound;
+
+        return;
+    }
+
+    await next();
+});
+
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();

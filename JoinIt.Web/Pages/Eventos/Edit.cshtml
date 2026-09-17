@@ -130,12 +130,31 @@
                                class="form-label">
                         </label>
 
-                        <select asp-for="Input.CategoriasSelecionadas"
-                                asp-items="Model.Categorias"
-                                class="form-select"
-                                multiple
-                                size="7">
-                        </select>
+                        <div class="mb-4">
+
+                            <div class="categorias-checklist">
+                                @foreach (var categoria in Model.Categorias)
+                                {
+                                    bool selecionada =
+                                        Model.Input.CategoriasSelecionadas
+                                            .Contains(int.Parse(categoria.Value!));
+
+                                    <label class="categoria-check">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               name="Input.CategoriasSelecionadas"
+                                               value="@categoria.Value"
+                                               id="categoria-@categoria.Value"
+                                               @(selecionada ? "checked" : "") />
+
+                                        <span>@categoria.Text</span>
+                                    </label>
+                                }
+                            </div>
+
+                            <span asp-validation-for="Input.CategoriasSelecionadas"
+                                  class="text-danger"></span>
+                        </div>
 
                         <div class="form-text">
                             Mantém Ctrl pressionado para selecionar várias categorias.

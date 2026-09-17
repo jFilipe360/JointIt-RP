@@ -37,184 +37,6 @@
 <div class="amizades-section-header mb-4">
     <div>
         <p class="section-kicker mb-1">
-            PEDIDOS
-        </p>
-
-        <h2 class="h4 fw-bold mb-0">
-            Pedidos recebidos
-        </h2>
-    </div>
-
-    <span class="resultados-count">
-        @Model.PedidosRecebidos.Count
-    </span>
-</div>
-
-@if (Model.PedidosRecebidos.Count == 0)
-{
-    <div class="eventos-empty-state mb-5">
-        <h3 class="h5 fw-bold mb-2">
-            Nenhum pedido pendente
-        </h3>
-
-        <p class="text-muted mb-0">
-            Não tens pedidos de amizade para responder.
-        </p>
-    </div>
-}
-else
-{
-    <div class="row g-4 mb-5">
-        @foreach (var pedido in Model.PedidosRecebidos)
-        {
-            var avatarEmissor = new AvatarUtilizadorViewModel
-            {
-                Nome = pedido.Emissor.Nome,
-                FotoPerfil = pedido.Emissor.FotoPerfil,
-                Tamanho = 80
-            };
-
-            <div class="col-md-6 col-lg-4">
-                <div class="card amizade-card h-100">
-                    <div class="card-body text-center p-4">
-
-                        <div class="d-flex justify-content-center mb-3">
-                            <partial name="_UserAvatar"
-                                     model="avatarEmissor" />
-                        </div>
-
-                        <h3 class="h5 fw-bold mb-2">
-                            @pedido.Emissor.Nome
-                        </h3>
-
-                        <p class="amizade-data">
-                            Pedido enviado em
-                            @pedido.CriadoEm.ToString("dd/MM/yyyy HH:mm")
-                        </p>
-
-                        <div class="d-flex flex-wrap justify-content-center gap-2 amizade-actions">
-                            <form method="post"
-                                  asp-page-handler="Aceitar"
-                                  asp-route-id="@pedido.Id">
-
-                                <button type="submit"
-                                        class="btn btn-primary">
-                                    Aceitar
-                                </button>
-                            </form>
-
-                            <form method="post"
-                                  asp-page-handler="Rejeitar"
-                                  asp-route-id="@pedido.Id">
-
-                                <button type="submit"
-                                        class="btn btn-outline-danger">
-                                    Rejeitar
-                                </button>
-                            </form>
-                        </div>
-
-                        <a asp-page="/Users/Details"
-                           asp-route-id="@pedido.EmissorId"
-                           class="btn btn-outline-secondary mt-3">
-                            Ver perfil
-                        </a>
-
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
-}
-
-<div class="amizades-section-header mb-4">
-    <div>
-        <p class="section-kicker mb-1">
-            A AGUARDAR RESPOSTA
-        </p>
-
-        <h2 class="h4 fw-bold mb-0">
-            Pedidos enviados
-        </h2>
-    </div>
-
-    <span class="resultados-count">
-        @Model.PedidosEnviados.Count
-    </span>
-</div>
-
-@if (Model.PedidosEnviados.Count == 0)
-{
-    <div class="eventos-empty-state mb-5">
-        <h3 class="h5 fw-bold mb-2">
-            Nenhum pedido enviado
-        </h3>
-
-        <p class="text-muted mb-0">
-            Não tens pedidos de amizade enviados pendentes.
-        </p>
-    </div>
-}
-else
-{
-    <div class="row g-4 mb-5">
-        @foreach (var pedido in Model.PedidosEnviados)
-        {
-            var avatarRecetor = new AvatarUtilizadorViewModel
-            {
-                Nome = pedido.Recetor.Nome,
-                FotoPerfil = pedido.Recetor.FotoPerfil,
-                Tamanho = 70
-            };
-            <div class="col-md-6 col-lg-4">
-                <div class="card amizade-card h-100">
-                    <div class="card-body text-center p-4">
-                        <div class="d-flex justify-content-center mb-3">
-                            <partial name="_UserAvatar"
-                                     model="avatarRecetor" />
-                        </div>
-
-                        <h5 class="card-title">
-                            @pedido.Recetor.Nome
-                        </h5>
-
-                        <p class="text-muted">
-                            Enviado em
-                            @pedido.CriadoEm.ToString("dd/MM/yyyy HH:mm")
-                        </p>
-
-                        <span class="perfil-status amizade-pendente mb-3">
-                            Pedido pendente
-                        </span>
-
-                        <div class="d-flex flex-wrap justify-content-center gap-2 amizade-actions">
-                            <a asp-page="/Users/Details"
-                               asp-route-id="@pedido.RecetorId"
-                               class="btn btn-primary">
-                                Ver perfil
-                            </a>
-
-                            <form method="post"
-                                  asp-page-handler="Cancelar"
-                                  asp-route-id="@pedido.Id">
-
-                                <button type="submit"
-                                        class="btn btn-outline-danger">
-                                    Cancelar
-                                </button>
-                            </form>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
-}
-
-<div class="amizades-section-header mb-4">
-    <div>
-        <p class="section-kicker mb-1">
             A TUA REDE
         </p>
 
@@ -294,3 +116,187 @@ else
         }
     </div>
 }
+
+<div class="row g-4 mt-4">
+
+    <div class="col-12 col-lg-6">
+        <div class="amizades-pedidos-box">
+
+            <div class="amizades-section-header mb-3">
+                <div>
+                    <p class="section-kicker mb-1">
+                        PEDIDOS
+                    </p>
+
+                    <h2 class="h5 fw-bold mb-0">
+                        Pedidos recebidos
+                    </h2>
+                </div>
+
+                <span class="resultados-count">
+                    @Model.PedidosRecebidos.Count
+                </span>
+            </div>
+
+            @if (Model.PedidosRecebidos.Count == 0)
+            {
+                <div class="eventos-empty-state amizades-empty-small">
+                    <p class="text-muted mb-0">
+                        Nenhum pedido pendente.
+                    </p>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex flex-column gap-3">
+                    @foreach (var pedido in Model.PedidosRecebidos)
+                    {
+                        var avatarEmissor = new AvatarUtilizadorViewModel
+                        {
+                            Nome = pedido.Emissor.Nome,
+                            FotoPerfil = pedido.Emissor.FotoPerfil,
+                            Tamanho = 60
+                        };
+
+                        <div class="card amizade-card pedido-amizade-card">
+                            <div class="card-body p-3">
+
+                                <div class="d-flex align-items-center gap-3">
+                                    <partial name="_UserAvatar"
+                                             model="avatarEmissor" />
+
+                                    <div class="flex-grow-1">
+                                        <h3 class="h6 fw-bold mb-1">
+                                            @pedido.Emissor.Nome
+                                        </h3>
+
+                                        <p class="amizade-data mb-2">
+                                            @pedido.CriadoEm.ToString("dd/MM/yyyy HH:mm")
+                                        </p>
+
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <form method="post"
+                                                  asp-page-handler="Aceitar"
+                                                  asp-route-id="@pedido.Id">
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-primary">
+                                                    Aceitar
+                                                </button>
+                                            </form>
+
+                                            <form method="post"
+                                                  asp-page-handler="Rejeitar"
+                                                  asp-route-id="@pedido.Id">
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-outline-danger">
+                                                    Rejeitar
+                                                </button>
+                                            </form>
+
+                                            <a asp-page="/Users/Details"
+                                               asp-route-id="@pedido.EmissorId"
+                                               class="btn btn-sm btn-outline-secondary">
+                                                Perfil
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+
+    <div class="col-12 col-lg-6">
+        <div class="amizades-pedidos-box">
+
+            <div class="amizades-section-header mb-3">
+                <div>
+                    <p class="section-kicker mb-1">
+                        A AGUARDAR RESPOSTA
+                    </p>
+
+                    <h2 class="h5 fw-bold mb-0">
+                        Pedidos enviados
+                    </h2>
+                </div>
+
+                <span class="resultados-count">
+                    @Model.PedidosEnviados.Count
+                </span>
+            </div>
+
+            @if (Model.PedidosEnviados.Count == 0)
+            {
+                <div class="eventos-empty-state amizades-empty-small">
+                    <p class="text-muted mb-0">
+                        Nenhum pedido enviado pendente.
+                    </p>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex flex-column gap-3">
+                    @foreach (var pedido in Model.PedidosEnviados)
+                    {
+                        var avatarRecetor = new AvatarUtilizadorViewModel
+                        {
+                            Nome = pedido.Recetor.Nome,
+                            FotoPerfil = pedido.Recetor.FotoPerfil,
+                            Tamanho = 60
+                        };
+
+                        <div class="card amizade-card pedido-amizade-card">
+                            <div class="card-body p-3">
+
+                                <div class="d-flex align-items-center gap-3">
+                                    <partial name="_UserAvatar"
+                                             model="avatarRecetor" />
+
+                                    <div class="flex-grow-1">
+                                        <h3 class="h6 fw-bold mb-1">
+                                            @pedido.Recetor.Nome
+                                        </h3>
+
+                                        <p class="amizade-data mb-2">
+                                            Enviado em
+                                            @pedido.CriadoEm.ToString("dd/MM/yyyy HH:mm")
+                                        </p>
+
+                                        <span class="perfil-status amizade-pendente d-inline-block mb-2">
+                                            Pedido pendente
+                                        </span>
+
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <a asp-page="/Users/Details"
+                                               asp-route-id="@pedido.RecetorId"
+                                               class="btn btn-sm btn-primary">
+                                                Perfil
+                                            </a>
+
+                                            <form method="post"
+                                                  asp-page-handler="Cancelar"
+                                                  asp-route-id="@pedido.Id">
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-outline-danger">
+                                                    Cancelar
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+</div>
+
