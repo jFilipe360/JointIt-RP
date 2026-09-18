@@ -21,6 +21,11 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.R
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.AccessDeniedPath = "/Erro/403";
+});
+
 builder.Services.AddRazorPages();
 
 builder.Services.AddScoped<
@@ -55,6 +60,8 @@ else
 }
 
 app.UseHttpsRedirection();
+
+app.UseStatusCodePagesWithReExecute("/Erro/{0}");
 
 app.UseRouting();
 

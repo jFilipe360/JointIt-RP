@@ -69,7 +69,7 @@ builder.Services
 builder.Services.AddAuthorization();
 
 // Controllers
-builder.Services.AddControllers();
+builder.Services.AddControllersWithViews();
 
 // OpenAPI
 builder.Services.AddOpenApi(options =>
@@ -92,6 +92,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
 
