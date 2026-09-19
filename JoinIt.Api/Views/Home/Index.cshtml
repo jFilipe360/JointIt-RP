@@ -1,0 +1,78 @@
+﻿@{
+    ViewData["Title"] = "JoinIt API";
+}
+
+<div class="container py-5">
+    <div class="api-hero text-center mb-4">
+        <p class="api-hero-kicker text-uppercase mb-2">
+            JOINIT
+        </p>
+        <h1 class="api-hero-title display-4 mb-3">
+            JoinIt API
+        </h1>
+        <p class="api-hero-text lead text-muted">
+            API REST responsável pelo acesso aos dados e serviços
+            da plataforma JoinIt.
+        </p>
+        <div class="d-flex justify-content-center flex-wrap gap-2 mt-4">
+            <a href="/scalar/v1" class="btn btn-primary px-4">
+                <i class="bi bi-book me-1"></i>
+                Documentação
+            </a>
+            <a href="/openapi/v1.json" class="btn btn-outline-secondary px-4">
+                <i class="bi bi-braces me-1"></i>
+                OpenAPI JSON
+            </a>
+        </div>
+    </div>
+    <div class="row g-4 justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card api-feature-card">
+                <div class="card-body p-4">
+                    <div class="mb-3">
+                        <i class="bi bi-check-circle api-feature-icon"></i>
+                    </div>
+                    <h2 class="h5 fw-bold">
+                        API disponível
+                    </h2>
+                    <p class="text-muted mb-0">
+                        O serviço está em execução e pronto para
+                        receber pedidos HTTP.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+            <div class="card api-feature-card">
+                <div class="card-body p-4">
+                    <div class="mb-3">
+                        <i class="bi bi-shield-lock api-feature-icon"></i>
+                    </div>
+                    <h2 class="h5 fw-bold">
+                        Autenticação JWT
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Os recursos protegidos utilizam tokens Bearer
+                        para autenticação e autorização.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-4">
+            <div class="card api-feature-card">
+                <div class="card-body p-4">
+                    <div class="mb-3">
+                        <i class="bi bi-code-slash api-feature-icon"></i>
+                    </div>
+                    <h2 class="h5 fw-bold">
+                        OpenAPI
+                    </h2>
+                    <p class="text-muted mb-0">
+                        Em ambiente de desenvolvimento podes consultar
+                        e testar a API através da documentação Scalar.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

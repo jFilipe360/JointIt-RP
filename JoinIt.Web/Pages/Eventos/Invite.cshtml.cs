@@ -1,0 +1,410 @@
+using JoinIt.Web.Data;
+using JoinIt.Web.Enums;
+using JoinIt.Web.Models;
+using JoinIt.Web.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+
+namespace JoinIt.Web.Pages.Eventos
+{
+    [Authorize]
+    public class InviteModel : PageModel
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly INotificacaoService _notificacaoService;
+        private readonly IEstadoEventoService _estadoEventoService;
+
+        public InviteModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager,
+            INotificacaoService notificacaoService, IEstadoEventoService estadoEventoService)
+        {
+            _context = context;
+            _userManager = userManager;
+            _notificacaoService = notificacaoService;
+            _estadoEventoService = estadoEventoService;
+        }
+
+        public Evento Evento { get; private set; } = null!;
+
+        public IList<AmigoConviteViewModel> Amigos { get; private set; } = new List<AmigoConviteViewModel>();
+
+        public int NumeroParticipantes { get; private set; }
+
+        public int LugaresDisponiveis => Math.Max(0, Evento.NumMaxParticipantes - NumeroParticipantes);
+
+        // Dados necessários para apresentar o estado do convite de cada amigo
+        public class AmigoConviteViewModel
+        {
+            public ApplicationUser Utilizador { get; set; } = null!;
+
+            public int? ConviteId { get; set; }
+
+            public EstadoPedido? EstadoConvite { get; set; }
+
+            public bool JaParticipa { get; set; }
+        }
+
+        public async Task<IActionResult> OnGetAsync(int id)
+        {
+            string? utilizadorId = _userManager.GetUserId(User);
+
+            if (string.IsNullOrEmpty(utilizadorId))
+            {
+                return Challenge();
+            }
+
+            var resultado = await CarregarPaginaAsync(id, utilizadorId);
+
+            if (resultado is not null)
+            {
+                return resultado;
+            }
+
+            return Page();
+        }
+
+        // Valida as regras do evento e envia ou renova um convite para um amigo
+        public async Task<IActionResult> OnPostEnviarAsync(int id, string recetorId)
+        {
+            string? utilizadorId = _userManager.GetUserId(User);
+
+            if (string.IsNullOrEmpty(utilizadorId))
+            {
+                return Challenge();
+            }
+
+            if (string.IsNullOrWhiteSpace(recetorId) || recetorId == utilizadorId)
+            {
+                TempData["MensagemErro"] = "O utilizador selecionado não é válido.";
+
+                return RedirectToPage(new { id });
+            }
+
+            var evento = await _context.Eventos
+                .Include(e => e.Participantes)
+                .Include(e => e.Convites)
+                .FirstOrDefaultAsync(e => e.Id == id);
+
+            if (evento is null)
+            {
+                return NotFound();
+            }
+
+            if (evento.CriadorId != utilizadorId)
+            {
+                return Forbid();
+            }
+
+            if (!evento.IsPrivado)
+            {
+                TempData["MensagemErro"] = "Só é possível enviar convites para eventos privados.";
+
+                return RedirectToPage(
+                    "./Details",
+                    new { id });
+            }
+
+            // Atualiza o estado antes de permitir o envio do convite
+            EstadoEvento estadoAtual = await AtualizarEstadoAsync(evento);
+
+            if (estadoAtual == EstadoEvento.Cancelado)
+            {
+                TempData["MensagemErro"] = "Não é possível enviar convites para um evento cancelado.";
+
+                return RedirectToPage(
+                    "./Details",
+                    new { id });
+            }
+
+            if (estadoAtual == EstadoEvento.Terminado)
+            {
+                TempData["MensagemErro"] = "Não é possível enviar convites para um evento terminado.";
+
+                return RedirectToPage(
+                    "./Details",
+                    new { id });
+            }
+
+            if (estadoAtual == EstadoEvento.ADecorrer || evento.DataHora <= DateTime.Now)
+            {
+                TempData["MensagemErro"] = "O evento já começou. Já não é possível enviar convites.";
+
+                return RedirectToPage(
+                    "./Details",
+                    new { id });
+            }
+
+            int numeroParticipantes = evento.Participantes.Count(p => p.Estado == EstadoPedido.Aceite);
+
+            if (numeroParticipantes >= evento.NumMaxParticipantes)
+            {
+                TempData["MensagemErro"] = "O evento já atingiu a lotação máxima.";
+
+                return RedirectToPage(new { id });
+            }
+
+            // Apenas amigos com amizade aceite podem ser convidados
+            bool saoAmigos = await _context.Amizades
+                .AsNoTracking()
+                .AnyAsync(a =>
+                    a.Estado == EstadoPedido.Aceite &&
+                    (
+                        (
+                            a.EmissorId == utilizadorId && a.RecetorId == recetorId
+                        ) ||
+                        (
+                            a.EmissorId == recetorId && a.RecetorId == utilizadorId
+                        )
+                    ));
+
+            if (!saoAmigos)
+            {
+                TempData["MensagemErro"] = "Só podes convidar utilizadores que sejam teus amigos.";
+
+                return RedirectToPage(new { id });
+            }
+
+            bool jaParticipa = evento.Participantes.Any(p =>
+                p.UtilizadorId == recetorId && p.Estado == EstadoPedido.Aceite);
+
+            if (jaParticipa)
+            {
+                TempData["MensagemErro"] = "Este utilizador já participa no evento.";
+
+                return RedirectToPage(new { id });
+            }
+
+            // Reutiliza um convite rejeitado para evitar registos duplicados
+            var convite = evento.Convites.FirstOrDefault(c => c.RecetorId == recetorId);
+
+            if (convite is null)
+            {
+                evento.Convites.Add(new ConviteEvento
+                {
+                    EmissorId = utilizadorId,
+                    RecetorId = recetorId,
+                    Estado = EstadoPedido.Pendente,
+                    CriadoEm = DateTime.Now
+                });
+
+
+                TempData["MensagemSucesso"] = "Convite enviado com sucesso.";
+            }
+            else if (convite.Estado == EstadoPedido.Rejeitado)
+            {
+                convite.EmissorId = utilizadorId;
+                convite.Estado = EstadoPedido.Pendente;
+                convite.CriadoEm = DateTime.Now;
+                convite.RespondidoEm = null;
+
+                TempData["MensagemSucesso"] = "Convite enviado novamente.";
+            }
+            else if (convite.Estado == EstadoPedido.Pendente)
+            {
+                TempData["MensagemErro"] = "Já existe um convite pendente para este utilizador.";
+
+                return RedirectToPage(new { id });
+            }
+            else
+            {
+                TempData["MensagemErro"] = "Este utilizador já aceitou o convite.";
+
+                return RedirectToPage(new { id });
+            }
+
+            await _context.SaveChangesAsync();
+
+            string link = Url.Page("/Convites/Index") ?? "/Convites";
+
+            await _notificacaoService.CriarAsync(
+                recetorId,
+                "Novo convite para evento",
+                $"Foste convidado para o evento {evento.Titulo}.",
+                link);
+
+            return RedirectToPage(new { id });
+        }
+
+        // Cancela apenas convites pendentes enviados pelo criador do evento
+        public async Task<IActionResult> OnPostCancelarAsync(int id, int conviteId)
+        {
+            string? utilizadorId = _userManager.GetUserId(User);
+
+            if (string.IsNullOrEmpty(utilizadorId))
+            {
+                return Challenge();
+            }
+
+            var evento = await _context.Eventos
+                .AsNoTracking()
+                .FirstOrDefaultAsync(e => e.Id == id);
+
+            if (evento is null)
+            {
+                return NotFound();
+            }
+
+            if (evento.CriadorId != utilizadorId)
+            {
+                return Forbid();
+            }
+
+            var convite = await _context.ConvitesEvento
+                .FirstOrDefaultAsync(c =>
+                    c.Id == conviteId &&
+                    c.EventoId == id &&
+                    c.EmissorId == utilizadorId &&
+                    c.Estado == EstadoPedido.Pendente);
+
+            if (convite is null)
+            {
+                TempData["MensagemErro"] = "O convite pendente não foi encontrado.";
+
+                return RedirectToPage(new { id });
+            }
+
+            _context.ConvitesEvento.Remove(convite);
+
+            await _context.SaveChangesAsync();
+
+            TempData["MensagemSucesso"] = "Convite cancelado.";
+
+            return RedirectToPage(new { id });
+        }
+
+        // Valida o acesso e prepara a lista de amigos e respetivos convites
+        private async Task<IActionResult?> CarregarPaginaAsync(int id, string utilizadorId)
+        {
+            var evento = await _context.Eventos
+                .AsNoTracking()
+                .Include(e => e.Participantes)
+                .Include(e => e.Convites)
+                .FirstOrDefaultAsync(e => e.Id == id);
+
+            if (evento is null)
+            {
+                return NotFound();
+            }
+
+            if (evento.CriadorId != utilizadorId)
+            {
+                return Forbid();
+            }
+
+            if (!evento.IsPrivado)
+            {
+                TempData["MensagemErro"] = "Os convites só estão disponíveis em eventos privados.";
+
+                return RedirectToPage(
+                    "./Details",
+                    new { id });
+            }
+
+            EstadoEvento estadoAtual =
+                _estadoEventoService.CalcularEstado(
+                    evento.DataHora,
+                    evento.DataFim,
+                    evento.Estado);
+
+            if (estadoAtual == EstadoEvento.Cancelado)
+            {
+                TempData["MensagemErro"] = "Não podes gerir convites de um evento cancelado.";
+
+                return RedirectToPage(
+                    "./Details",
+                    new { id });
+            }
+
+            if (estadoAtual == EstadoEvento.Terminado)
+            {
+                TempData["MensagemErro"] = "Não podes gerir convites de um evento terminado.";
+
+                return RedirectToPage(
+                    "./Details",
+                    new { id });
+            }
+
+            if (estadoAtual == EstadoEvento.ADecorrer ||
+                evento.DataHora <= DateTime.Now)
+            {
+                TempData["MensagemErro"] = "O evento já começou. Já não podes enviar convites.";
+
+                return RedirectToPage(
+                    "./Details",
+                    new { id });
+            }
+
+            evento.Estado = estadoAtual;
+            Evento = evento;
+
+            NumeroParticipantes = evento.Participantes.Count(p => p.Estado == EstadoPedido.Aceite);
+
+            //Carrega todas as amizades aceites do criador
+            var amizades = await _context.Amizades
+                .AsNoTracking()
+                .Where(a =>
+                    a.Estado == EstadoPedido.Aceite &&
+                    (
+                        a.EmissorId == utilizadorId ||
+                        a.RecetorId == utilizadorId
+                    ))
+                .Include(a => a.Emissor)
+                .Include(a => a.Recetor)
+                .ToListAsync();
+
+            var utilizadoresAmigos = amizades
+                .Select(a =>
+                    a.EmissorId == utilizadorId
+                        ? a.Recetor
+                        : a.Emissor)
+                .OrderBy(u => u.Nome)
+                .ToList();
+
+            // Associa a cada amigo o convite existente e o estado de participação
+            Amigos = utilizadoresAmigos
+                .Select(amigo =>
+                {
+                    var convite = evento.Convites
+                        .FirstOrDefault(c =>
+                            c.RecetorId == amigo.Id);
+
+                    bool jaParticipa =
+                        evento.Participantes.Any(p =>
+                            p.UtilizadorId == amigo.Id &&
+                            p.Estado == EstadoPedido.Aceite);
+
+                    return new AmigoConviteViewModel
+                    {
+                        Utilizador = amigo,
+                        ConviteId = convite?.Id,
+                        EstadoConvite = convite?.Estado,
+                        JaParticipa = jaParticipa
+                    };
+                })
+                .ToList();
+
+            return null;
+        }
+
+        // Recalcula e guarda o estado do evento quando este tiver mudado
+        private async Task<EstadoEvento> AtualizarEstadoAsync(Evento evento)
+        {
+            EstadoEvento novoEstado =
+                _estadoEventoService.CalcularEstado(
+                    evento.DataHora,
+                    evento.DataFim,
+                    evento.Estado);
+
+            if (evento.Estado != novoEstado)
+            {
+                evento.Estado = novoEstado;
+                await _context.SaveChangesAsync();
+            }
+
+            return novoEstado;
+        }
+    }
+}

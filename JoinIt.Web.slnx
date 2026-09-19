@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="JoinIt.Api/JoinIt.Api.csproj" />
+  <Project Path="JoinIt.Web/JoinIt.Web.csproj" />
+</Solution>

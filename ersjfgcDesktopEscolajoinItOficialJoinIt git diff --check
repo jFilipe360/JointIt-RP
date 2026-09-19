@@ -1,0 +1,12 @@
+JoinIt.Web/Models/Evento.cs:84: trailing whitespace.
+[32m+[m[32m                yield return new ValidationResult("A data de fim deve ser posterior à data de início.",[m[41m [m
+JoinIt.Web/Pages/Eventos/Index.cshtml.cs:61: trailing whitespace.
+[32m+[m[32m            //Carrega apenas eventos públicos e os dados necessários para filtros e apresentação[m[41m [m
+JoinIt.Web/Pages/Eventos/Index.cshtml.cs:75: trailing whitespace.
+[32m+[m[32m                //Pesquisa por título, descrição, localização ou categoria[m[41m [m
+JoinIt.Web/Pages/Perfil/Edit.cshtml.cs:25: trailing whitespace.
+[32m+[m[32m        private static readonly HashSet<string> TiposPermitidos =[m[41m [m
+JoinIt.Web/Program.cs:10: trailing whitespace.
+[32m+[m[32mvar connectionString =[m[41m [m
+JoinIt.Web/Program.cs:11: trailing whitespace.
+[32m+[m[32m    builder.Configuration.GetConnectionString("DefaultConnection")[m[41m [m

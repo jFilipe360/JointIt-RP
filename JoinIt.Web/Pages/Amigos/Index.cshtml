@@ -1,0 +1,251 @@
+﻿@page
+@using JoinIt.Web.ViewModels
+@model JoinIt.Web.Pages.Amigos.IndexModel
+
+@{
+    ViewData["Title"] = "Amizades";
+}
+
+<div class="mb-5">
+    <p class="section-kicker mb-1">
+        COMUNIDADE
+    </p>
+    <h1 class="section-title mb-2">
+        Amizades
+    </h1>
+    <p class="text-muted mb-0">
+        Gere os teus amigos e pedidos de amizade.
+    </p>
+</div>
+
+@if (TempData["MensagemSucesso"] is string mensagemSucesso)
+{
+    <div class="alert alert-success">
+        @mensagemSucesso
+    </div>
+}
+
+@if (TempData["MensagemErro"] is string mensagemErro)
+{
+    <div class="alert alert-danger">
+        @mensagemErro
+    </div>
+}
+
+<div class="amizades-section-header mb-4">
+    <div>
+        <p class="section-kicker mb-1">
+            A TUA REDE
+        </p>
+        <h2 class="h4 fw-bold mb-0">
+            Os meus amigos
+        </h2>
+    </div>
+    <span class="resultados-count">
+        @Model.Amigos.Count
+    </span>
+</div>
+
+@if (Model.Amigos.Count == 0)
+{
+    <div class="eventos-empty-state">
+        <h3 class="h5 fw-bold mb-2">
+            Ainda não tens amigos
+        </h3>
+        <p class="text-muted mb-0">
+            Explora os utilizadores e envia pedidos de amizade.
+        </p>
+    </div>
+}
+else
+{
+    <div class="row g-4">
+
+        @foreach (var amizade in Model.Amigos)
+        {
+            var avatarAmigo = new AvatarUtilizadorViewModel
+            {
+                Nome = amizade.Utilizador.Nome,
+                FotoPerfil = amizade.Utilizador.FotoPerfil,
+                Tamanho = 80
+            };
+
+            <div class="col-md-6 col-lg-4">
+                <div class="card amizade-card h-100">
+                    <div class="card-body text-center p-4">
+                        <div class="d-flex justify-content-center mb-3">
+                            <partial name="_UserAvatar" model="avatarAmigo" />
+                        </div>
+                        <h3 class="h5 fw-bold mb-3">
+                            @amizade.Utilizador.Nome
+                        </h3>
+                        <span class="perfil-status amizade-aceite mb-3">
+                            Amigo
+                        </span>
+                        <div class="d-flex flex-wrap justify-content-center gap-2 amizade-actions">
+                            <a asp-page="/Users/Details" asp-route-id="@amizade.Utilizador.Id"
+                               class="btn btn-primary">
+                                Ver perfil
+                            </a>
+                            <form method="post" asp-page-handler="Remover" asp-route-id="@amizade.AmizadeId"
+                                  onsubmit="return confirm('Tens a certeza de que pretendes remover esta amizade?');">
+                                <button type="submit" class="btn btn-outline-danger">
+                                    Remover
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<div class="row g-4 mt-4">
+    <div class="col-12 col-lg-6">
+        <div class="amizades-pedidos-box">
+            <div class="amizades-section-header mb-3">
+                <div>
+                    <p class="section-kicker mb-1">
+                        PEDIDOS
+                    </p>
+                    <h2 class="h5 fw-bold mb-0">
+                        Pedidos recebidos
+                    </h2>
+                </div>
+                <span class="resultados-count">
+                    @Model.PedidosRecebidos.Count
+                </span>
+            </div>
+
+            @if (Model.PedidosRecebidos.Count == 0)
+            {
+                <div class="eventos-empty-state amizades-empty-small">
+                    <p class="text-muted mb-0">
+                        Nenhum pedido pendente.
+                    </p>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex flex-column gap-3">
+                    @foreach (var pedido in Model.PedidosRecebidos)
+                    {
+                        var avatarEmissor = new AvatarUtilizadorViewModel
+                        {
+                            Nome = pedido.Emissor.Nome,
+                            FotoPerfil = pedido.Emissor.FotoPerfil,
+                            Tamanho = 60
+                        };
+
+                        <div class="card amizade-card pedido-amizade-card">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <partial name="_UserAvatar" model="avatarEmissor" />
+                                    <div class="flex-grow-1">
+                                        <h3 class="h6 fw-bold mb-1">
+                                            @pedido.Emissor.Nome
+                                        </h3>
+                                        <p class="amizade-data mb-2">
+                                            @pedido.CriadoEm.ToString("dd/MM/yyyy HH:mm")
+                                        </p>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <form method="post" asp-page-handler="Aceitar"
+                                                  asp-route-id="@pedido.Id">
+                                                <button type="submit" class="btn btn-sm btn-primary">
+                                                    Aceitar
+                                                </button>
+                                            </form>
+                                            <form method="post" asp-page-handler="Rejeitar"
+                                                  asp-route-id="@pedido.Id">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    Rejeitar
+                                                </button>
+                                            </form>
+                                            <a asp-page="/Users/Details" asp-route-id="@pedido.EmissorId"
+                                               class="btn btn-sm btn-outline-secondary">
+                                                Perfil
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+    <div class="col-12 col-lg-6">
+        <div class="amizades-pedidos-box">
+            <div class="amizades-section-header mb-3">
+                <div>
+                    <p class="section-kicker mb-1">
+                        A AGUARDAR RESPOSTA
+                    </p>
+                    <h2 class="h5 fw-bold mb-0">
+                        Pedidos enviados
+                    </h2>
+                </div>
+                <span class="resultados-count">
+                    @Model.PedidosEnviados.Count
+                </span>
+            </div>
+
+            @if (Model.PedidosEnviados.Count == 0)
+            {
+                <div class="eventos-empty-state amizades-empty-small">
+                    <p class="text-muted mb-0">
+                        Nenhum pedido enviado pendente.
+                    </p>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex flex-column gap-3">
+                    @foreach (var pedido in Model.PedidosEnviados)
+                    {
+                        var avatarRecetor = new AvatarUtilizadorViewModel
+                        {
+                            Nome = pedido.Recetor.Nome,
+                            FotoPerfil = pedido.Recetor.FotoPerfil,
+                            Tamanho = 60
+                        };
+
+                        <div class="card amizade-card pedido-amizade-card">
+                            <div class="card-body p-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <partial name="_UserAvatar" model="avatarRecetor" />
+                                    <div class="flex-grow-1">
+                                        <h3 class="h6 fw-bold mb-1">
+                                            @pedido.Recetor.Nome
+                                        </h3>
+                                        <p class="amizade-data mb-2">
+                                            Enviado em
+                                            @pedido.CriadoEm.ToString("dd/MM/yyyy HH:mm")
+                                        </p>
+                                        <span class="perfil-status amizade-pendente d-inline-block mb-2">
+                                            Pedido pendente
+                                        </span>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <a asp-page="/Users/Details" asp-route-id="@pedido.RecetorId"
+                                               class="btn btn-sm btn-primary">
+                                                Perfil
+                                            </a>
+                                            <form method="post" asp-page-handler="Cancelar"
+                                                  asp-route-id="@pedido.Id">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                    Cancelar
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>

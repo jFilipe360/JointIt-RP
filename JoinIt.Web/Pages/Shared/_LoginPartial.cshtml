@@ -1,0 +1,81 @@
+﻿@using JoinIt.Web.Models
+@using JoinIt.Web.ViewModels
+@using Microsoft.AspNetCore.Identity
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+@{
+    ApplicationUser? utilizador = null;
+
+    if (SignInManager.IsSignedIn(User))
+    {
+        utilizador = await UserManager.GetUserAsync(User);
+    }
+
+    string nomeUtilizador =
+        utilizador?.Nome ?? "Utilizador";
+
+    var avatar = new AvatarUtilizadorViewModel
+    {
+        Nome = nomeUtilizador,
+        FotoPerfil = utilizador?.FotoPerfil,
+        Tamanho = 40
+    };
+}
+
+<ul class="navbar-nav ms-auto align-items-lg-center joinit-user-nav">
+    @if (SignInManager.IsSignedIn(User))
+    {
+        <li class="nav-item d-flex align-items-center">
+            <a asp-page="/Perfil/Index"
+               class="nav-link joinit-user-link d-flex align-items-center gap-2"
+               title="O meu perfil">
+
+                <partial name="_UserAvatar"
+                         model="avatar" />
+
+                <span class="joinit-user-name text-nowrap">
+                    @nomeUtilizador
+                </span>
+            </a>
+        </li>
+
+        
+        <li class="nav-item">
+            @await Component.InvokeAsync("NotificacaoCount")
+        </li>
+
+        <li class="nav-item d-flex align-items-center">
+            <form asp-area="Identity"
+                  asp-page="/Account/Logout"
+                  asp-route-returnUrl="@Url.Page("/Index")"
+                  method="post"
+                  class="m-0 d-flex align-items-center">
+
+                <button type="submit"
+                        class="nav-link btn btn-link joinit-logout text-nowrap">
+                    Terminar sessão
+                </button>
+            </form>
+        </li>
+    }
+    else
+    {
+        <li class="nav-item">
+            <a class="nav-link"
+               asp-area="Identity"
+               asp-page="/Account/Register">
+                Registar
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link joinit-login-link"
+               asp-area="Identity"
+               asp-page="/Account/Login">
+                Iniciar sessão
+            </a>
+        </li>
+    }
+</ul>

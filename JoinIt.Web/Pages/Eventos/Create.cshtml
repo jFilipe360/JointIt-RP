@@ -1,0 +1,344 @@
+﻿@page
+@using System.Globalization
+@model JoinIt.Web.Pages.Eventos.CreateModel
+
+@{
+    ViewData["Title"] = "Criar evento";
+
+    bool temCoordenadas = Model.Input.Latitude.HasValue && Model.Input.Longitude.HasValue;
+
+    string latitudeInicial = Model.Input.Latitude?
+        .ToString(CultureInfo.InvariantCulture)
+        ?? "39.5";
+
+    string longitudeInicial = Model.Input.Longitude?
+        .ToString(CultureInfo.InvariantCulture)
+        ?? "-8.0";
+}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+
+<div class="evento-form-header mb-4">
+    <p class="section-kicker mb-1">
+        NOVO EVENTO
+    </p>
+    <h1 class="section-title mb-2">
+        Criar evento
+    </h1>
+    <p class="text-muted mb-0">
+        Preenche os dados e seleciona a localização do evento no mapa.
+    </p>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-9">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly"
+                 class="text-danger mb-3">
+            </div>
+            <div class="card evento-form-card mb-4">
+                <div class="card-body p-4 p-md-5">
+                    <h2 class="evento-form-section-title">
+                        Informações do evento
+                    </h2>
+                    <div class="mb-3">
+                        <label asp-for="Input.Titulo"
+                               class="form-label">
+                        </label>
+                        <input asp-for="Input.Titulo" class="form-control" />
+                        <span asp-validation-for="Input.Titulo"
+                              class="text-danger">
+                        </span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Input.Descricao"
+                               class="form-label">
+                        </label>
+                        <textarea asp-for="Input.Descricao" class="form-control" rows="5"></textarea>
+                        <span asp-validation-for="Input.Descricao"
+                              class="text-danger">
+                        </span>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.DataHora" class="form-label">
+                            </label>
+                            <input asp-for="Input.DataHora" type="datetime-local" class="form-control" />
+                            <span asp-validation-for="Input.DataHora"
+                                  class="text-danger">
+                            </span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.DataFim" class="form-label">
+                            </label>
+                            <input asp-for="Input.DataFim" type="datetime-local" class="form-control" />
+                            <span asp-validation-for="Input.DataFim"
+                                  class="text-danger">
+                            </span>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Input.NumMaxParticipantes" class="form-label">
+                        </label>
+                        <input asp-for="Input.NumMaxParticipantes" class="form-control" />
+                        <span asp-validation-for="Input.NumMaxParticipantes"
+                              class="text-danger">
+                        </span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Input.CategoriasSelecionadas" class="form-label">
+                        </label>
+                        <div class="mb-4">
+                            <div class="categorias-checklist">
+
+                                @foreach (var categoria in Model.Categorias)
+                                {
+                                    bool selecionada =
+                                        Model.Input.CategoriasSelecionadas
+                                            .Contains(int.Parse(categoria.Value!));
+
+                                    <label class="categoria-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               name="Input.CategoriasSelecionadas" value="@categoria.Value"
+                                               id="categoria-@categoria.Value" @(selecionada ? "checked" : "") />
+                                        <span>@categoria.Text</span>
+                                    </label>
+                                }
+
+                            </div>
+                            <span asp-validation-for="Input.CategoriasSelecionadas" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">
+                            Tipo de evento
+                        </label>
+                        <div class="evento-tipo-option">
+                            <div class="form-check form-switch mb-0">
+                                <input asp-for="Input.IsOnline" class="form-check-input" id="eventoOnline" />
+                                <label asp-for="Input.IsOnline" class="form-check-label fw-semibold">
+                                    Evento online
+                                </label>
+                            </div>
+                            <div class="form-text">
+                                Ativa esta opção se o evento decorrer totalmente online.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="evento-privacidade-option">
+                        <div class="form-check">
+                            <input asp-for="Input.IsPrivado" class="form-check-input" />
+                            <label asp-for="Input.IsPrivado" class="form-check-label">
+                            </label>
+                            <div class="form-text"> Eventos privados só podem ser vistos por participantes
+                                e utilizadores convidados.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="blocoOnline" style="display: none;">
+                <div class="card evento-form-card mb-4">
+                    <div class="card-body p-4 p-md-5">
+                        <h2 class="evento-form-section-title">
+                            Evento online
+                        </h2>
+                        <div class="mb-3">
+                            <label asp-for="Input.LinkOnline" class="form-label">
+                            </label>
+                            <input asp-for="Input.LinkOnline" type="url" class="form-control"
+                                   placeholder="https://meet.google.com/..." />
+                            <div class="form-text">
+                                Introduz o link do Evento.
+                            </div>
+                            <span asp-validation-for="Input.LinkOnline" class="text-danger">
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="blocoPresencial">
+                <div class="card evento-form-card mb-4">
+                    <div class="card-body p-4 p-md-5">
+                        <h2 class="evento-form-section-title">
+                            Localização
+                        </h2>
+                        <div class="mb-3">
+                            <label asp-for="Input.Local" class="form-label">
+                            </label>
+                            <input asp-for="Input.Local" class="form-control"
+                                   placeholder="Ex.: Biblioteca Municipal" />
+                            <span asp-validation-for="Input.Local" class="text-danger">
+                            </span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Input.Morada" class="form-label">
+                            </label>
+                            <input asp-for="Input.Morada" class="form-control"
+                                   placeholder="Ex.: Rua Principal, 25, Porto" />
+                            <span asp-validation-for="Input.Morada" class="text-danger">
+                            </span>
+                        </div>
+                        <p class="text-muted mb-2">
+                            Clica no mapa para selecionar a localização exata.
+                        </p>
+                        <div id="mapa" class="event-form-map mb-3">
+                        </div>
+                        <input asp-for="Input.Latitude" type="hidden" id="latitude" />
+                        <input asp-for="Input.Longitude" type="hidden" id="longitude" />
+                        <div class="d-flex flex-wrap align-items-center gap-2">
+                            <button type="button" id="limparLocalizacao" class="btn btn-sm btn-outline-secondary">
+                                Limpar localização
+                            </button>
+                            <span id="coordenadasSelecionadas" class="text-muted small">
+                                Nenhuma localização selecionada.
+                            </span>
+                        </div>
+                        <div class="mt-2">
+                            <span asp-validation-for="Input.Latitude"
+                                  class="text-danger d-block">
+                            </span>
+                            <span asp-validation-for="Input.Longitude"
+                                  class="text-danger d-block">
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="evento-form-actions d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary px-4">
+                    Criar evento
+                </button>
+                <a asp-page="./Index" class="btn btn-outline-secondary px-4">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="">
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            const separadorDecimal = "@CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator";
+
+            const temCoordenadas =  @temCoordenadas.ToString().ToLowerInvariant();
+
+            const latitudeInicial = @latitudeInicial;
+            const longitudeInicial = @longitudeInicial;
+
+            const latitudeInput = document.getElementById("latitude");
+
+            const longitudeInput = document.getElementById("longitude");
+
+            const coordenadasTexto = document.getElementById("coordenadasSelecionadas");
+
+            const limparBotao = document.getElementById("limparLocalizacao");
+
+            const eventoOnline = document.getElementById("eventoOnline");
+
+            const blocoOnline = document.getElementById("blocoOnline");
+
+            const blocoPresencial = document.getElementById("blocoPresencial");
+
+            //Inicializa o mapa Leaflet com OpenStreetMap
+            const mapa = L.map("mapa").setView(
+                [latitudeInicial, longitudeInicial],
+                temCoordenadas ? 15 : 7
+            );
+
+            L.tileLayer(
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+                    maxZoom: 19,
+                    attribution:
+                        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                }
+            ).addTo(mapa);
+
+            let marcador = null;
+
+            //Adapta o separador decimal à cultura usada no servidor
+            function formatarNumeroParaServidor(valor) {
+                return valor
+                    .toFixed(6)
+                    .replace(".", separadorDecimal);
+            }
+
+            //Atualiza os campos escondidos, o texto das coordenadas e o marcador no mapa
+            function atualizarLocalizacao(latitude, longitude) {
+                latitudeInput.value = formatarNumeroParaServidor(latitude);
+
+                longitudeInput.value = formatarNumeroParaServidor(longitude);
+
+                coordenadasTexto.textContent =
+                    `Latitude: ${latitude.toLocaleString("pt-PT", {
+                        minimumFractionDigits: 6,
+                        maximumFractionDigits: 6
+                    })} | Longitude: ${longitude.toLocaleString("pt-PT", {
+                        minimumFractionDigits: 6,
+                        maximumFractionDigits: 6
+                    })}`;
+
+                if (marcador === null) {
+                    marcador = L.marker(
+                        [latitude, longitude]
+                    ).addTo(mapa);
+                }
+                else {
+                    marcador.setLatLng(
+                        [latitude, longitude]
+                    );
+                }
+            }
+
+            if (temCoordenadas) {
+                atualizarLocalizacao(latitudeInicial, longitudeInicial);
+            }
+
+            //Permite selecionar a localização clicando no mapa
+            mapa.on("click", function (evento) {
+                atualizarLocalizacao(evento.latlng.lat, evento.latlng.lng);
+            });
+
+            //Remove as coordenadas e o marcador selecionados
+            limparBotao.addEventListener("click", function () {
+                latitudeInput.value = "";
+                longitudeInput.value = "";
+
+                coordenadasTexto.textContent = "Nenhuma localização selecionada.";
+
+                if (marcador !== null) {
+                    mapa.removeLayer(marcador);
+                    marcador = null;
+                }
+            });
+
+            //Altera os campos apresentados consoante o evento seja online ou presencial
+            function atualizarTipoEvento() {
+                const online = eventoOnline.checked;
+
+                blocoOnline.style.display = online ? "block" : "none";
+
+                blocoPresencial.style.display = online ? "none" : "block";
+
+                if (!online) {
+                    //Recalcula o tamanho do mapa depois de este voltar a ser visível
+                    window.setTimeout(function () {
+                        mapa.invalidateSize();
+                    }, 0);
+                }
+            }
+
+            eventoOnline.addEventListener("change", atualizarTipoEvento);
+
+            atualizarTipoEvento();
+        });
+    </script>
+}

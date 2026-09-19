@@ -1,0 +1,237 @@
+﻿@page
+@using JoinIt.Web.Enums
+@model JoinIt.Web.Pages.Admin.Eventos.IndexModel
+
+@{
+    ViewData["Title"] = "Gerir eventos";
+}
+
+@if (TempData["MensagemSucesso"] is string mensagemSucesso)
+{
+    <div class="alert alert-success">
+        @mensagemSucesso
+    </div>
+}
+
+@if (TempData["MensagemErro"] is string mensagemErro)
+{
+    <div class="alert alert-danger">
+        @mensagemErro
+    </div>
+}
+
+<div class="eventos-page-header mb-4">
+    <div>
+        <p class="section-kicker mb-1">
+            ADMINISTRAÇÃO
+        </p>
+        <h1 class="section-title mb-2">
+            Eventos
+        </h1>
+        <p class="text-muted mb-0">
+            Consulta e gere todos os eventos da plataforma.
+        </p>
+    </div>
+    <a asp-page="/Admin/Index"
+       class="btn btn-outline-secondary">
+        Voltar ao painel
+    </a>
+</div>
+
+<div class="card filtros-card mb-4">
+    <div class="card-body p-4">
+        <form method="get">
+            <div class="row align-items-end">
+                <div class="col-lg-6 mb-3 mb-lg-0">
+                    <label asp-for="Pesquisa" class="form-label">
+                        Pesquisa
+                    </label>
+                    <input asp-for="Pesquisa" class="form-control"
+                           placeholder="Título, criador ou localização..." />
+                </div>
+                <div class="col-lg-3 mb-3 mb-lg-0">
+                    <label asp-for="Estado" class="form-label">
+                        Estado
+                    </label>
+                    <select asp-for="Estado" class="form-select">
+                        <option value="">
+                            Todos
+                        </option>
+                        <option value="@EstadoEvento.ParaBreve">
+                            Para breve
+                        </option>
+                        <option value="@EstadoEvento.ADecorrer">
+                            A decorrer
+                        </option>
+                        <option value="@EstadoEvento.Terminado">
+                            Terminado
+                        </option>
+                        <option value="@EstadoEvento.Cancelado">
+                            Cancelado
+                        </option>
+                    </select>
+                </div>
+                <div class="col-lg-3">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            Filtrar
+                        </button>
+                        <a asp-page="./Index" class="btn btn-outline-secondary">
+                            Limpar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h5 fw-bold mb-0">
+        Eventos registados
+    </h2>
+    <span class="resultados-count">
+        @Model.Eventos.Count
+        @(Model.Eventos.Count == 1
+            ? "evento"
+            : "eventos")
+    </span>
+</div>
+
+@if (Model.Eventos.Count == 0)
+{
+    <div class="eventos-empty-state">
+        <h3 class="h5 fw-bold">
+            Nenhum evento encontrado
+        </h3>
+        <p class="text-muted mb-0">
+            Não existem eventos que correspondam aos filtros.
+        </p>
+    </div>
+}
+else
+{
+    <div class="card evento-details-card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0 admin-table">
+                <thead>
+                    <tr>
+                        <th>Evento</th>
+                        <th>Criador</th>
+                        <th>Tipo</th>
+                        <th>Data</th>
+                        <th>Participantes</th>
+                        <th>Estado</th>
+                        <th class="text-end">
+                            Ações
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var evento in Model.Eventos)
+                    {
+                        string nomeEstado = evento.Estado switch
+                        {
+                            EstadoEvento.ParaBreve => "Para breve",
+                            EstadoEvento.ADecorrer => "A decorrer",
+                            EstadoEvento.Terminado => "Terminado",
+                            EstadoEvento.Cancelado => "Cancelado",
+                            _ => evento.Estado.ToString()
+                        };
+
+                        string classeEstado = evento.Estado switch
+                        {
+                            EstadoEvento.ParaBreve => "estado-parabreve",
+                            EstadoEvento.ADecorrer => "estado-decorrer",
+                            EstadoEvento.Terminado => "estado-terminado",
+                            EstadoEvento.Cancelado => "estado-cancelado",
+                            _ => "estado-terminado"
+                        };
+
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">
+                                    @evento.Titulo
+                                </div>
+                                <div class="small text-muted">
+                                    @if (evento.IsOnline)
+                                    {
+                                        <span>Online</span>
+                                    }
+                                    else
+                                    {
+                                        <span>
+                                            @(evento.Local ?? "Sem localização")
+                                        </span>
+                                    }
+                                </div>
+                            </td>
+                            <td>
+                                @evento.CriadorNome
+                            </td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-1">
+                                    <span class="evento-tipo-badge
+                                                 @(evento.IsOnline
+                                                     ? "evento-online"
+                                                     : "evento-presencial")">
+                                        @(evento.IsOnline
+                                            ? "Online"
+                                            : "Presencial")
+                                    </span>
+                                    @if (evento.IsPrivado)
+                                    {
+                                        <span class="privacidade-badge privacidade-privado">
+                                            Privado
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="privacidade-badge privacidade-publico">
+                                            Público
+                                        </span>
+                                    }
+                                </div>
+                            </td>
+                            <td>
+                                @evento.DataHora.ToString("dd/MM/yyyy HH:mm")
+                            </td>
+                            <td>
+                                @evento.NumeroParticipantes /
+                                @evento.NumMaxParticipantes
+                            </td>
+                            <td>
+                                <span class="estado-badge @classeEstado">
+                                    @nomeEstado
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="d-flex flex-wrap justify-content-end gap-2">
+                                    @if (evento.Estado !=
+                                             EstadoEvento.Cancelado &&
+                                         evento.Estado !=
+                                             EstadoEvento.Terminado)
+                                    {
+                                        <form method="post" asp-page-handler="Cancelar"
+                                              asp-route-id="@evento.Id"
+                                              onsubmit="return confirm('Cancelar este evento? Os participantes serão notificados.');">
+                                            <button type="submit" class="btn btn-sm btn-outline-warning">
+                                                Cancelar
+                                            </button>
+                                        </form>
+                                    }
+                                    <form method="post" asp-page-handler="Apagar" asp-route-id="@evento.Id"
+                                          onsubmit="return confirm('Apagar definitivamente este evento? Esta ação não pode ser revertida.');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            Apagar
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

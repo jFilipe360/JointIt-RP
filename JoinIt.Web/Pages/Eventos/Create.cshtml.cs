@@ -1,0 +1,255 @@
+using JoinIt.Web.Data;
+using JoinIt.Web.Enums;
+using JoinIt.Web.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+
+namespace JoinIt.Web.Pages.Eventos
+{
+    [Authorize]
+    public class CreateModel : PageModel
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
+
+        public CreateModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        {
+            _context = context;
+            _userManager = userManager;
+        }
+
+        [BindProperty]
+        public EventoInputModel Input { get; set; } = new();
+
+        public IList<SelectListItem> Categorias { get; set; } = new List<SelectListItem>();
+
+        public class EventoInputModel
+        {
+            [Required(ErrorMessage = "O título é obrigatório.")]
+            [StringLength(100, ErrorMessage = "O título não pode ultrapassar 100 caracteres.")]
+            [Display(Name = "Título")]
+            public string Titulo { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "A descrição é obrigatória.")]
+            [StringLength(1000, ErrorMessage = "A descrição não pode ultrapassar 1000 caracteres.")]
+            [Display(Name = "Descrição")]
+            public string Descricao { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "A data e hora de início são obrigatórias.")]
+            [Display(Name = "Data e hora de início")]
+            public DateTime DataHora { get; set; } = DateTime.Now.AddDays(1);
+
+            [Required(ErrorMessage = "A data e hora de fim são obrigatórias.")]
+            [Display(Name = "Data e hora de fim")]
+            public DateTime DataFim { get; set; } = DateTime.Now.AddDays(1).AddHours(2);
+
+            [Display(Name = "Evento online")]
+            public bool IsOnline { get; set; }
+
+            [StringLength(500, ErrorMessage = "O link não pode ultrapassar 500 caracteres.")]
+            [Display(Name = "Link do evento online")]
+            public string? LinkOnline { get; set; }
+
+            [StringLength(150, ErrorMessage = "O local não pode ultrapassar 150 caracteres.")]
+            [Display(Name = "Local")]
+            public string? Local { get; set; }
+
+            [StringLength(250, ErrorMessage = "A morada não pode ultrapassar 250 caracteres.")]
+            [Display(Name = "Morada")]
+            public string? Morada { get; set; }
+
+            [Range(2, 1000, ErrorMessage = "A lotação deve estar entre 2 e 1000.")]
+            [Display(Name = "Número máximo de participantes")]
+            public int NumMaxParticipantes { get; set; } = 10;
+
+            [Display(Name = "Evento privado")]
+            public bool IsPrivado { get; set; }
+
+            [Range(-90, 90, ErrorMessage = "A latitude deve estar entre -90 e 90.")]
+            [Display(Name = "Latitude")]
+            public double? Latitude { get; set; }
+
+            [Range(-180, 180, ErrorMessage = "A longitude deve estar entre -180 e 180.")]
+            [Display(Name = "Longitude")]
+            public double? Longitude { get; set; }
+
+            [MinLength(1,  ErrorMessage = "Seleciona pelo menos uma categoria.")]
+            [Display(Name = "Categorias")]
+            public List<int> CategoriasSelecionadas { get; set; } = new();
+        }
+
+        public async Task OnGetAsync()
+        {
+            await CarregarCategoriasAsync();
+        }
+
+        //Valida os dados do formulário e cria um novo evento no banco de dados.
+        public async Task<IActionResult> OnPostAsync()
+        {
+            ValidarDatas();
+            ValidarTipoEvento();
+
+            //Remove categorias duplicadas e confirma que os IDs recebidos existem na base de dados
+            List<int> categoriasSelecionadas = Input.CategoriasSelecionadas.Distinct().ToList();
+
+            List<int> categoriasValidas = await _context.Categorias.Where(c => categoriasSelecionadas.Contains(c.Id))
+                .Select(c => c.Id)
+                .ToListAsync();
+
+            if (categoriasValidas.Count != categoriasSelecionadas.Count)
+            {
+                ModelState.AddModelError("Input.CategoriasSelecionadas",
+                    "Uma das categorias selecionadas não é válida.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                await CarregarCategoriasAsync();
+
+                return Page();
+            }
+
+            string? utilizadorId = _userManager.GetUserId(User);
+
+            if (string.IsNullOrEmpty(utilizadorId))
+            {
+                return Challenge();
+            }
+
+            //Converte os dados validados numa entidade Evento
+            var evento = new Evento
+            {
+                Titulo = Input.Titulo.Trim(),
+                Descricao = Input.Descricao.Trim(),
+                DataHora = Input.DataHora,
+                DataFim = Input.DataFim,
+                IsOnline = Input.IsOnline,
+                LinkOnline = Input.IsOnline
+                    ? Input.LinkOnline!.Trim()
+                    : null,
+                Local = Input.IsOnline
+                    ? null
+                    : Input.Local!.Trim(),
+                Morada = Input.IsOnline ||
+                        string.IsNullOrWhiteSpace(Input.Morada)
+                    ? null
+                    : Input.Morada.Trim(),
+                Latitude = Input.IsOnline
+                    ? null
+                    : Input.Latitude,
+                Longitude = Input.IsOnline
+                    ? null
+                    : Input.Longitude,
+                NumMaxParticipantes = Input.NumMaxParticipantes,
+                IsPrivado = Input.IsPrivado,
+                Estado = EstadoEvento.ParaBreve,
+                CriadorId = utilizadorId
+            };
+
+            //Cria as relações entre o evento e as categorias selecionadas
+            foreach (int categoriaId in categoriasValidas)
+            {
+                evento.EventosCategorias.Add(new EventoCategoria
+                {
+                    CategoriaId = categoriaId
+                });
+            }
+
+            // O criador participa automaticamente no evento.
+            evento.Participantes.Add(new Participante
+            {
+                UtilizadorId = utilizadorId,
+                Estado = EstadoPedido.Aceite,
+                DataPedido = DateTime.Now
+            });
+
+            _context.Eventos.Add(evento);
+            await _context.SaveChangesAsync();
+
+            TempData["MensagemSucesso"] = "O evento foi criado com sucesso.";
+
+            return RedirectToPage("./Details", new
+            {
+                id = evento.Id
+            });
+        }
+
+        //Garante que o evento começa no futuro e termina depois de começar
+        private void ValidarDatas()
+        {
+            if (Input.DataHora <= DateTime.Now)
+            {
+                ModelState.AddModelError("Input.DataHora", "A data de início deve ser futura.");
+            }
+
+            if (Input.DataFim <= Input.DataHora)
+            {
+                ModelState.AddModelError("Input.DataFim", "A data de fim deve ser posterior à data de início.");
+            }
+        }
+
+        //Aplica as regras de validação específicas para eventos online e presenciais
+        private void ValidarTipoEvento()
+        {
+            if (Input.IsOnline)
+            {
+                if (string.IsNullOrWhiteSpace(Input.LinkOnline))
+                {
+                    ModelState.AddModelError("Input.LinkOnline", "O link é obrigatório para eventos online.");
+
+                    return;
+                }
+
+                if (!Uri.TryCreate(
+                        Input.LinkOnline.Trim(),
+                        UriKind.Absolute,
+                        out Uri? uri) ||
+                    (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+                {
+                    ModelState.AddModelError("Input.LinkOnline", "Introduz um link válido.");
+                }
+
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(Input.Local))
+            {
+                ModelState.AddModelError("Input.Local", "O local é obrigatório para eventos presenciais.");
+            }
+
+            ValidarCoordenadas();
+        }
+
+        //Latitude e longitude devem ser fornecidas em conjunto para eventos presenciais
+        private void ValidarCoordenadas()
+        {
+            bool temLatitude = Input.Latitude.HasValue;
+            bool temLongitude = Input.Longitude.HasValue;
+
+            if (temLatitude != temLongitude)
+            {
+                ModelState.AddModelError("Input.Latitude", "Seleciona uma localização completa no mapa.");
+
+                ModelState.AddModelError("Input.Longitude", "Seleciona uma localização completa no mapa.");
+            }
+        }
+
+        private async Task CarregarCategoriasAsync()
+        {
+            Categorias = await _context.Categorias
+                .AsNoTracking()
+                .OrderBy(c => c.Nome)
+                .Select(c => new SelectListItem
+                {
+                    Value = c.Id.ToString(),
+                    Text = c.Nome
+                })
+                .ToListAsync();
+        }
+    }
+}

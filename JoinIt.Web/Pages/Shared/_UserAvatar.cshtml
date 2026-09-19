@@ -1,0 +1,33 @@
+﻿@model JoinIt.Web.ViewModels.AvatarUtilizadorViewModel
+
+@{
+    string inicial = string.IsNullOrWhiteSpace(Model.Nome)
+        ? "?"
+        : Model.Nome[..1].ToUpper();
+
+    string tamanho = $"{Model.Tamanho}px";
+    string tamanhoTexto = $"{Math.Max(14, Model.Tamanho / 3)}px";
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.FotoPerfil))
+{
+    <img src="@Model.FotoPerfil"
+         alt="Fotografia de @Model.Nome"
+         class="rounded-circle"
+         style="width: @tamanho;
+                height: @tamanho;
+                object-fit: cover;
+                flex-shrink: 0;" />
+}
+else
+{
+    <span class="rounded-circle bg-secondary text-white
+                 d-inline-flex align-items-center justify-content-center"
+          style="width: @tamanho;
+                 height: @tamanho;
+                 font-size: @tamanhoTexto;
+                 flex-shrink: 0;">
+
+        @inicial
+    </span>
+}

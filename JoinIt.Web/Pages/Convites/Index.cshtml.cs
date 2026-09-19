@@ -1,0 +1,245 @@
+using JoinIt.Web.Data;
+using JoinIt.Web.Enums;
+using JoinIt.Web.Models;
+using JoinIt.Web.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
+
+namespace JoinIt.Web.Pages.Convites
+{
+    [Authorize]
+    public class IndexModel : PageModel
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly INotificacaoService _notificacaoService;
+        private readonly IEstadoEventoService _estadoEventoService;
+
+        public IndexModel( ApplicationDbContext context, UserManager<ApplicationUser> userManager,
+            INotificacaoService notificacaoService, IEstadoEventoService estadoEventoService)
+        {
+            _context = context;
+            _userManager = userManager;
+            _notificacaoService = notificacaoService;
+            _estadoEventoService = estadoEventoService;
+        }
+
+        public IList<ConviteEvento> ConvitesPendentes { get; private set; } = new List<ConviteEvento>();
+
+        public IList<ConviteEvento> HistoricoConvites { get; private set; } = new List<ConviteEvento>();
+
+        //Atualiza os estados dos eventos e carrega os convites do utilizador atual
+        public async Task<IActionResult> OnGetAsync()
+        {
+            string? utilizadorId = _userManager.GetUserId(User);
+
+            if (string.IsNullOrEmpty(utilizadorId))
+            {
+                return Challenge();
+            }
+
+            await _estadoEventoService.AtualizarEstadosAsync();
+            await CarregarConvitesAsync(utilizadorId);
+
+            return Page();
+        }
+
+        //Valida o convite e o evento antes de registar a participação
+        public async Task<IActionResult> OnPostAceitarAsync(int id)
+        {
+            var utilizadorAtual = await _userManager.GetUserAsync(User);
+
+            if (utilizadorAtual is null)
+            {
+                return Challenge();
+            }
+
+            //Só permite responder a convites pendentes do utilizador atual
+            var convite = await _context.ConvitesEvento
+                .Include(c => c.Evento)
+                    .ThenInclude(e => e.Participantes)
+                .FirstOrDefaultAsync(c =>
+                    c.Id == id &&
+                    c.RecetorId == utilizadorAtual.Id);
+
+            if (convite is null)
+            {
+                TempData["MensagemErro"] = "O convite não foi encontrado.";
+
+                return RedirectToPage();
+            }
+
+            if (convite.Estado != EstadoPedido.Pendente)
+            {
+                TempData["MensagemErro"] = "Este convite já foi respondido.";
+
+                return RedirectToPage();
+            }
+
+            Evento evento = convite.Evento;
+
+            if (!evento.IsPrivado)
+            {
+                TempData["MensagemErro"] = "Este convite não pertence a um evento privado.";
+
+                return RedirectToPage();
+            }
+
+            //Recalcula o estado para impedir a entrada em eventos já iniciados ou terminados
+            EstadoEvento estadoAtual =
+                _estadoEventoService.CalcularEstado(evento.DataHora, evento.DataFim, evento.Estado);
+
+            if (evento.Estado != estadoAtual)
+            {
+                evento.Estado = estadoAtual;
+                await _context.SaveChangesAsync();
+            }
+
+            if (estadoAtual == EstadoEvento.Cancelado)
+            {
+                TempData["MensagemErro"] = "Não é possível aceitar o convite porque o evento foi cancelado.";
+
+                return RedirectToPage();
+            }
+
+            if (estadoAtual == EstadoEvento.Terminado)
+            {
+                TempData["MensagemErro"] = "Não é possível aceitar o convite porque o evento terminou.";
+
+                return RedirectToPage();
+            }
+
+            if (estadoAtual == EstadoEvento.ADecorrer || evento.DataHora <= DateTime.Now)
+            {
+                TempData["MensagemErro"] = "Não é possível aceitar o convite porque o evento já começou.";
+
+                return RedirectToPage();
+            }
+
+            //Verifica se já existe uma participação deste utilizador no evento
+            var participacao = evento.Participantes
+                .FirstOrDefault(p =>p.UtilizadorId == utilizadorAtual.Id);
+
+            bool jaParticipa = participacao?.Estado == EstadoPedido.Aceite;
+
+            int numeroParticipantes = evento.Participantes.Count(p => p.Estado == EstadoPedido.Aceite);
+
+            //Apenas partecipantes aceites contam para a lotação máxima do evento
+            if (!jaParticipa && numeroParticipantes >= evento.NumMaxParticipantes)
+            {
+                TempData["MensagemErro"] = "O evento já atingiu a lotação máxima.";
+
+                return RedirectToPage();
+            }
+
+            //Reutiliza uma participação existente para evitar registos duplicados
+            if (participacao is null)
+            {
+                evento.Participantes.Add(new Participante
+                {
+                    UtilizadorId = utilizadorAtual.Id,
+                    Estado = EstadoPedido.Aceite,
+                    DataPedido = DateTime.Now
+                });
+            }
+            else
+            {
+                participacao.Estado = EstadoPedido.Aceite;
+                participacao.DataPedido = DateTime.Now;
+            }
+
+            //Regista a resposta ao convite após a validação de todos os critérios
+            convite.Estado = EstadoPedido.Aceite;
+            convite.RespondidoEm = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+
+            string link = Url.Page(
+                "/Eventos/Details",
+                new { id = evento.Id })
+                ?? $"/Eventos/Details?id={evento.Id}";
+
+            await _notificacaoService.CriarAsync(
+                convite.EmissorId,
+                "Convite aceite",
+                $"{utilizadorAtual.Nome} aceitou o convite para {evento.Titulo}.",
+                link);
+
+            TempData["MensagemSucesso"] = "Convite aceite. Entraste no evento.";
+
+            return RedirectToPage(
+                "/Eventos/Details",
+                new { id = evento.Id });
+        }
+
+        //Rejeita um convite pendente e envia uma notificação ao emissor
+        public async Task<IActionResult> OnPostRejeitarAsync(int id)
+        {
+            var utilizadorAtual = await _userManager.GetUserAsync(User);
+
+            if (utilizadorAtual is null)
+            {
+                return Challenge();
+            }
+
+            var convite = await _context.ConvitesEvento
+                .Include(c => c.Evento)
+                .FirstOrDefaultAsync(c =>
+                    c.Id == id &&
+                    c.RecetorId == utilizadorAtual.Id &&
+                    c.Estado == EstadoPedido.Pendente);
+
+            if (convite is null)
+            {
+                TempData["MensagemErro"] = "O convite pendente não foi encontrado.";
+
+                return RedirectToPage();
+            }
+
+            convite.Estado = EstadoPedido.Rejeitado;
+            convite.RespondidoEm = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+
+            string link = Url.Page(
+                "/Eventos/Details",
+                new { id = convite.EventoId })
+                ?? $"/Eventos/Details?id={convite.EventoId}";
+
+            await _notificacaoService.CriarAsync(
+                convite.EmissorId,
+                "Convite rejeitado",
+                $"{utilizadorAtual.Nome} rejeitou o convite para {convite.Evento.Titulo}.",
+                link);
+
+            TempData["MensagemSucesso"] = "Convite rejeitado.";
+
+            return RedirectToPage();
+        }
+
+        //Carrega todos os convites recebidos pelo utilizador
+        private async Task CarregarConvitesAsync(string utilizadorId)
+        {
+            var convites = await _context.ConvitesEvento
+                .AsNoTracking()
+                .Where(c => c.RecetorId == utilizadorId)
+                .Include(c => c.Emissor)
+                .Include(c => c.Evento)
+                    .ThenInclude(e => e.Criador)
+                .OrderByDescending(c => c.CriadoEm)
+                .ToListAsync();
+
+            //Separa os convites pendentes do histórico de convites respondidos
+            ConvitesPendentes = convites
+                .Where(c => c.Estado == EstadoPedido.Pendente)
+                .ToList();
+
+            HistoricoConvites = convites
+                .Where(c => c.Estado != EstadoPedido.Pendente)
+                .ToList();
+        }
+    }
+}

@@ -1,0 +1,259 @@
+﻿@page
+@model JoinIt.Web.Pages.Perfil.EditModel
+
+@{
+    ViewData["Title"] = "Editar perfil";
+
+    string inicial =
+        string.IsNullOrWhiteSpace(Model.Input.Nome)
+            ? "?"
+            : Model.Input.Nome[..1].ToUpper();
+
+    bool usarUrlInicial = !string.IsNullOrWhiteSpace(Model.Input.FotoUrl);
+}
+
+<div class="evento-form-header mb-4">
+    <p class="section-kicker mb-1">
+        A TUA CONTA
+    </p>
+    <h1 class="section-title mb-2">
+        Editar perfil
+    </h1>
+    <p class="text-muted mb-0">
+        Altera o teu nome e a fotografia de perfil.
+    </p>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-7">
+        <form method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3">
+            </div>
+            <div class="card perfil-edit-card mb-4">
+                <div class="card-body p-4 p-md-5">
+                    <h2 class="evento-form-section-title">
+                        Fotografia de perfil
+                    </h2>
+                    <div id="fotoPreviewContainer">
+
+                        @if (string.IsNullOrWhiteSpace(Model.FotoAtual))
+                        {
+                            <div class="perfil-edit-avatar perfil-edit-avatar-placeholder mb-4">
+                                @inicial
+                            </div>
+                        }
+                        else
+                        {
+                            <img src="@Model.FotoAtual" alt="Fotografia de perfil"
+                                 class="perfil-edit-avatar mb-4" />
+                        }
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">
+                            Origem da fotografia
+                        </label>
+                        <div class="evento-tipo-option mb-4">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox"
+                                       id="usarFotoUrl" checked="@(usarUrlInicial ? "checked" : null)" />
+                                <label class="form-check-label fw-semibold" for="usarFotoUrl">
+                                    Usar URL da imagem
+                                </label>
+                            </div>
+                            <div class="form-text">
+                                Ativa esta opção para utilizar uma imagem através de um URL.
+                            </div>
+                        </div>
+                    </div>
+                    <div id="blocoUpload">
+                        <div class="mb-3">
+                            <label asp-for="Input.Foto" class="form-label">
+                            </label>
+                            <input asp-for="Input.Foto" id="fotoInput" class="form-control perfil-file-input"
+                                   type="file" accept=".jpg,.jpeg,.png,.webp" />
+                            <div class="form-text">
+                                Formatos permitidos: JPG, PNG e WEBP.
+                                Tamanho máximo: 2 MB.
+                            </div>
+                            <span asp-validation-for="Input.Foto" class="text-danger">
+                            </span>
+                        </div>
+                    </div>
+                    <div id="blocoUrl">
+                        <div class="mb-3">
+                            <label asp-for="Input.FotoUrl" class="form-label">
+                            </label>
+                            <input asp-for="Input.FotoUrl" id="fotoUrlInput" class="form-control"
+                                   type="url" placeholder="https://exemplo.com/foto.jpg" />
+                            <div class="form-text">
+                                Introduz o endereço de uma imagem online.
+                            </div>
+                            <span asp-validation-for="Input.FotoUrl" class="text-danger">
+                            </span>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.FotoAtual))
+                    {
+                        <div class="perfil-remover-foto">
+                            <div class="form-check">
+                                <input asp-for="Input.RemoverFoto" class="form-check-input" />
+                                <label asp-for="Input.RemoverFoto" class="form-check-label">
+                                </label>
+                            </div>
+                        </div>
+                    }
+
+                </div>
+            </div>
+            <div class="card perfil-edit-card mb-4">
+                <div class="card-body p-4 p-md-5">
+                    <h2 class="evento-form-section-title">
+                        Dados pessoais
+                    </h2>
+                    <div class="mb-3">
+                        <label asp-for="Input.Nome" class="form-label">
+                        </label>
+                        <input asp-for="Input.Nome" class="form-control" autocomplete="name" />
+                        <span asp-validation-for="Input.Nome" class="text-danger">
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="card perfil-edit-card mb-4">
+                <div class="card-body p-4 p-md-5">
+                    <h2 class="evento-form-section-title">
+                        Segurança
+                    </h2>
+                    <p class="text-muted">
+                        Altera a palavra-passe utilizada para aceder à tua conta.
+                    </p>
+                    <a asp-area="Identity" asp-page="/Account/Manage/ChangePassword" class="btn btn-outline-secondary">
+                        <i class="bi bi-key me-1"></i>
+                        Alterar palavra-passe
+                    </a>
+                </div>
+            </div>
+            <div class="perfil-edit-actions d-flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary px-4">
+                    Guardar alterações
+                </button>
+                <a asp-page="./Index" class="btn btn-secondary px-4">
+                    Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        const fotoInput = document.getElementById("fotoInput");
+
+        const fotoUrlInput = document.getElementById("fotoUrlInput");
+
+        const fotoPreviewContainer = document.getElementById("fotoPreviewContainer");
+
+        const previewOriginal = fotoPreviewContainer.innerHTML;
+
+        const usarFotoUrl = document.getElementById("usarFotoUrl");
+
+        const blocoUpload = document.getElementById("blocoUpload");
+
+        const blocoUrl = document.getElementById("blocoUrl");
+
+        // Alterna entre upload de ficheiro e URL, limpando a opção não utilizada
+        function atualizarTipoFoto() {
+            const usarUrl = usarFotoUrl.checked;
+
+            blocoUpload.style.display = usarUrl ? "none" : "block";
+
+            blocoUrl.style.display = usarUrl ? "block" : "none";
+
+            if (usarUrl) {
+                fotoInput.value = "";
+                atualizarPreviewUrl();
+            }
+            else {
+                fotoUrlInput.value = "";
+                fotoPreviewContainer.innerHTML = previewOriginal;
+            }
+        }
+
+        // Substitui a fotografia atual pela imagem de pré-visualização
+        function mostrarImagem(src) {
+            const imagem = document.createElement("img");
+
+            imagem.src = src;
+            imagem.alt = "Pré-visualização da fotografia de perfil";
+            imagem.className = "perfil-edit-avatar mb-4";
+
+            fotoPreviewContainer.replaceChildren(imagem);
+
+            return imagem;
+        }
+
+        // Valida o URL e atualiza a pré-visualização da imagem online
+        function atualizarPreviewUrl() {
+            // O ficheiro selecionado tem prioridade.
+            if (fotoInput?.files?.length > 0) {
+                return;
+            }
+
+            const url = fotoUrlInput?.value.trim();
+
+            if (!url) {
+                fotoPreviewContainer.innerHTML = previewOriginal;
+                return;
+            }
+
+            try {
+                const endereco = new URL(url);
+
+                if (endereco.protocol !== "http:" && endereco.protocol !== "https:") {
+                    return;
+                }
+
+                mostrarImagem(url);
+            }
+            catch {
+                // Enquanto o URL estiver incompleto,
+                // mantém o preview atual.
+            }
+        }
+
+        // Cria uma pré-visualização local da fotografia selecionada
+        fotoInput?.addEventListener("change", function () {
+            const ficheiro = this.files?.[0];
+
+            if (!ficheiro) {
+                atualizarPreviewUrl();
+                return;
+            }
+
+            if (!ficheiro.type.startsWith("image/")) {
+                return;
+            }
+
+            const url = URL.createObjectURL(ficheiro);
+
+            const imagem = mostrarImagem(url);
+
+            imagem.onload = function () {
+                URL.revokeObjectURL(url);
+            };
+
+            imagem.onerror = function () {
+                URL.revokeObjectURL(url);
+            };
+        });
+
+        fotoUrlInput?.addEventListener("input", atualizarPreviewUrl);
+
+        usarFotoUrl.addEventListener("change", atualizarTipoFoto);
+
+        atualizarTipoFoto();
+    </script>
+}
