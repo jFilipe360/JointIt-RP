@@ -81,7 +81,8 @@ builder.Services.AddOpenApi(options =>
 var app = builder.Build();
 
 // OpenAPI e Scalar ficam disponíveis apenas em desenvolvimento
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() ||
+    builder.Configuration.GetValue<bool>("OpenApi:Enabled"))
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
