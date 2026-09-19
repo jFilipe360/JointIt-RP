@@ -1,7 +1,6 @@
-﻿using System.Diagnostics;
-
-namespace JoinIt.Api.Models
+﻿namespace JoinIt.Api.Models
 {
+    // Entidade de associação entre eventos e categorias
     public class EventoCategoria
     {
         public int EventoId { get; set; }

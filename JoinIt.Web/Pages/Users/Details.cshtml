@@ -31,14 +31,11 @@
 <div class="card user-profile-card mb-5">
     <div class="card-body p-4 p-md-5">
         <div class="row align-items-center">
-
             <div class="col-md-auto text-center mb-3 mb-md-0">
                 <div class="d-flex justify-content-center">
-                    <partial name="_UserAvatar"
-                             model="avatar" />
+                    <partial name="_UserAvatar" model="avatar" />
                 </div>
             </div>
-
             <div class="col-md">
                 <p class="section-kicker mb-1">
                     PERFIL
@@ -46,7 +43,6 @@
                 <h1 class="section-title mb-2">
                     @Model.Utilizador.Nome
                 </h1>
-
                 <p class="text-muted mb-2">
                     Membro desde
                     @Model.Utilizador.CriadoEm.ToString("dd/MM/yyyy")
@@ -74,13 +70,9 @@
                                 <span class="perfil-status amizade-pendente">
                                     Pedido enviado
                                 </span>
-
-                                <form method="post"
-                                      asp-page-handler="CancelarPedido"
+                                <form method="post" asp-page-handler="CancelarPedido"
                                       asp-route-id="@Model.Utilizador.Id">
-
-                                    <button type="submit"
-                                            class="btn btn-sm btn-outline-danger">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
                                         Cancelar pedido
                                     </button>
                                 </form>
@@ -92,21 +84,16 @@
                                 <span class="perfil-status amizade-recebida">
                                     Este utilizador enviou-te um pedido de amizade
                                 </span>
-
-                                <a asp-page="/Amigos/Index"
-                                   class="btn btn-sm btn-primary">
+                                <a asp-page="/Amigos/Index" class="btn btn-sm btn-primary">
                                     Gerir pedido
                                 </a>
                             </div>
                         }
                         else
                         {
-                            <form method="post"
-                                  asp-page-handler="EnviarPedido"
+                            <form method="post" asp-page-handler="EnviarPedido"
                                   asp-route-id="@Model.Utilizador.Id">
-
-                                <button type="submit"
-                                        class="btn btn-primary">
+                                <button type="submit" class="btn btn-primary">
                                     Enviar pedido de amizade
                                 </button>
                             </form>
@@ -114,7 +101,6 @@
                     </div>
                 }
             </div>
-
         </div>
     </div>
 </div>
@@ -124,12 +110,10 @@
         <p class="section-kicker mb-1">
             EVENTOS
         </p>
-
         <h2 class="h4 fw-bold mb-0">
             Eventos públicos criados
         </h2>
     </div>
-
     <span class="resultados-count">
         @Model.EventosPublicos.Count
         @(Model.EventosPublicos.Count == 1 ? "evento" : "eventos")
@@ -142,7 +126,6 @@
         <h3 class="h5 fw-bold mb-2">
             Ainda não há eventos públicos
         </h3>
-
         <p class="text-muted mb-0">
             Este utilizador ainda não criou eventos públicos.
         </p>
@@ -163,7 +146,6 @@ else
                         <h5 class="h5 fw-bold mb-2">
                             @evento.Titulo
                         </h5>
-
                         <div class="mb-2">
                             <span class="evento-tipo-badge
                                          @(evento.IsOnline
@@ -172,11 +154,9 @@ else
                                 @(evento.IsOnline ? "Online" : "Presencial")
                             </span>
                         </div>
-
                         <p class="evento-card-descricao text-muted">
                             @evento.Descricao
                         </p>
-
                         <p class="mb-1">
                             <strong>Data:</strong>
                             @evento.DataHora.ToString(
@@ -203,8 +183,8 @@ else
                             @numeroParticipantes /
                             @evento.NumMaxParticipantes
                         </p>
-
                         <div class="mb-3">
+
                             @foreach (var eventoCategoria in
                                 evento.EventosCategorias
                                     .OrderBy(
@@ -214,11 +194,9 @@ else
                                     @eventoCategoria.Categoria.Nome
                                 </span>
                             }
-                        </div>
 
-                        <a asp-page="/Eventos/Details"
-                           asp-route-id="@evento.Id"
-                           class="btn btn-primary w-100 mt-auto">
+                        </div>
+                        <a asp-page="/Eventos/Details" asp-route-id="@evento.Id" class="btn btn-primary w-100 mt-auto">
                             Ver evento
                         </a>
                     </div>
@@ -228,7 +206,6 @@ else
     </div>
 }
 
-<a asp-page="./Index"
-   class="btn btn-outline-secondary mt-4">
+<a asp-page="./Index" class="btn btn-outline-secondary mt-4">
     Voltar aos utilizadores
 </a>

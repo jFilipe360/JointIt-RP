@@ -9,11 +9,9 @@
     <p class="section-kicker mb-1">
         ATENÇÃO!!
     </p>
-
     <h1 class="section-title mb-2">
         Apagar evento
     </h1>
-
     <p class="text-muted mb-0">
         Confirma os dados antes de eliminares definitivamente este evento.
     </p>
@@ -23,7 +21,6 @@
     <h4 class="alert-heading">
         Tens a certeza de que pretendes apagar este evento?
     </h4>
-
     <p class="mb-0">
         Esta ação não pode ser anulada.
     </p>
@@ -34,32 +31,26 @@
         <h2 class="details-section-title mb-3">
             @Model.Evento.Titulo
         </h2>
-
         <p class="card-text">
             @Model.Evento.Descricao
         </p>
-
         <dl class="row mb-0">
             <dt class="col-sm-3">Criador</dt>
             <dd class="col-sm-9">
                 @Model.Evento.Criador.Nome
             </dd>
-
             <dt class="col-sm-3">Data</dt>
             <dd class="col-sm-9">
                 @Model.Evento.DataHora.ToString("dd/MM/yyyy HH:mm")
             </dd>
-
             <dt class="col-sm-3">Lotação</dt>
             <dd class="col-sm-9">
                 @Model.Evento.NumMaxParticipantes
             </dd>
-
             <dt class="col-sm-3">Visibilidade</dt>
             <dd class="col-sm-9">
                 @(Model.Evento.IsPrivado ? "Privado" : "Público")
             </dd>
-
             <dt class="col-sm-3">Tipo</dt>
             <dd class="col-sm-9">
                 <span class="evento-tipo-badge
@@ -80,8 +71,7 @@
 
             <dt class="col-sm-3">Categorias</dt>
             <dd class="col-sm-9">
-                @foreach (var eventoCategoria
-                    in Model.Evento.EventosCategorias
+                @foreach (var eventoCategoria in Model.Evento.EventosCategorias
                         .OrderBy(ec => ec.Categoria.Nome))
                 {
                     <span class="categoria-badge mb-1">
@@ -93,18 +83,11 @@
     </div>
 </div>
 
-<form method="post"
-      asp-route-id="@Model.Evento.Id"
-      class="delete-actions">
-
-    <button type="submit"
-            class="btn btn-danger px-4">
+<form method="post" asp-route-id="@Model.Evento.Id" class="delete-actions">
+    <button type="submit" class="btn btn-danger px-4">
         Apagar definitivamente
     </button>
-
-    <a asp-page="./Details"
-       asp-route-id="@Model.Evento.Id"
-       class="btn btn-secondary px-4">
+    <a asp-page="./Details" asp-route-id="@Model.Evento.Id" class="btn btn-secondary px-4">
         Cancelar
     </a>
 </form>

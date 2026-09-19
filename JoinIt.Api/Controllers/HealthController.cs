@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JoinIt.Api.Controllers;
 
+// Endpoint de diagnóstico usado para verificar o estado da API e da base de dados
 [ApiController]
 [Route("api/[controller]")]
 public class HealthController : ControllerBase
@@ -15,6 +16,7 @@ public class HealthController : ControllerBase
         _context = context;
     }
 
+    // Verifica se a aplicação consegue estabelecer ligação à base de dados
     [HttpGet]
     public async Task<IActionResult> Get()
     {
@@ -29,6 +31,7 @@ public class HealthController : ControllerBase
             });
         }
 
+        // Executa uma consulta simples para confirmar o acesso aos dados
         var categorias = await _context.Categorias.CountAsync();
 
         return Ok(new

@@ -1,5 +1,6 @@
 ﻿namespace JoinIt.Api.DTOs.Eventos;
 
+// Estrutura genérica usada para devolver resultados paginados pela API.
 public class ResultadoPaginadoDto<T>
 {
     public List<T> Items { get; set; } = [];

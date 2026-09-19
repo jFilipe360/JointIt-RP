@@ -48,9 +48,7 @@
 
 @if (temCoordenadas)
 {
-    <link rel="stylesheet"
-          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          crossorigin="" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 }
 
 @if (TempData["MensagemSucesso"] is string mensagemSucesso)
@@ -77,10 +75,8 @@
 <section class="evento-details-header mb-4">
     <div class="evento-details-header-content">
         <div class="flex-grow-1">
-
             <div class="d-flex flex-wrap gap-2 mb-3">
-                @foreach (var eventoCategoria in
-                    Model.Evento.EventosCategorias
+                @foreach (var eventoCategoria in Model.Evento.EventosCategorias
                         .OrderBy(ec => ec.Categoria.Nome))
                 {
                     <span class="categoria-badge">
@@ -88,22 +84,16 @@
                     </span>
                 }
             </div>
-
             <h1 class="evento-details-title mb-3">
                 @Model.Evento.Titulo
             </h1>
-
             <p class="mb-0 text-white-50">
                 Criado por
-
-                <a asp-page="/Users/Details"
-                   asp-route-id="@Model.Evento.CriadorId"
-                   class="evento-criador-link">
+                <a asp-page="/Users/Details" asp-route-id="@Model.Evento.CriadorId" class="evento-criador-link">
                     @Model.Evento.Criador.Nome
                 </a>
             </p>
         </div>
-
         <div class="evento-details-badges">
             @if (Model.Evento.IsOnline)
             {
@@ -139,59 +129,58 @@
 
 <div class="row">
     <div class="col-lg-8">
-
         <div class="card evento-details-card mb-4">
             <div class="card-body p-4">
                 <h4 class="details-section-title">
                     Descrição
                 </h4>
-
                 <p class="card-text"
                    style="white-space: pre-line;">@Model.Evento.Descricao</p>
             </div>
         </div>
-
-        <div class="card evento-details-card mb-4">
-            <div class="card-body">
-                <h4 class="details-section-title">
-                    Localização
-                </h4>
-
-                <p class="mb-1">
-                    <strong>Local:</strong>
-                    @Model.Evento.Local
-                </p>
-
-                @if (!string.IsNullOrWhiteSpace(Model.Evento.Morada))
-                {
-                    <p class="mb-3">
-                        <strong>Morada:</strong>
-                        @Model.Evento.Morada
+        @if (!Model.Evento.IsOnline)
+        {
+            <div class="card evento-details-card mb-4">
+                <div class="card-body">
+                    <h4 class="details-section-title">
+                        Localização
+                    </h4>
+                    <p class="mb-1">
+                        <strong>Local:</strong>
+                        @Model.Evento.Local
                     </p>
-                }
 
-                @if (temCoordenadas)
-                {
-                    <div id="mapaEvento"
-                         class="event-map mb-3">
-                    </div>
+                    @if (!string.IsNullOrWhiteSpace(Model.Evento.Morada))
+                    {
+                        <p class="mb-3">
+                            <strong>Morada:</strong>
+                            @Model.Evento.Morada
+                        </p>
+                    }
 
-                    <a href="@urlMapa"
-                       target="_blank"
-                       rel="noopener noreferrer"
-                       class="btn btn-sm btn-outline-primary">
-                        Abrir no OpenStreetMap
-                    </a>
-                }
-                else
-                {
-                    <p class="text-muted mb-0">
-                        Este evento não tem uma localização exata selecionada
-                        no mapa.
-                    </p>
-                }
+                    @if (temCoordenadas)
+                    {
+                        <div id="mapaEvento"
+                        class="event-map mb-3">
+                        </div>
+
+                        <a href="@urlMapa"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="btn btn-sm btn-outline-primary">
+                            Abrir no OpenStreetMap
+                        </a>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">
+                            Este evento não tem uma localização exata selecionada
+                            no mapa.
+                        </p>
+                    }
+                </div>
             </div>
-        </div>
+        }
 
         @if (!Model.Evento.IsOnline)
         {
@@ -201,7 +190,6 @@
                         <h2 class="details-section-title mb-0">
                             Participantes
                         </h2>
-
                         <span class="participantes-count">
                             @Model.NumeroParticipantes /
                             @Model.Evento.NumMaxParticipantes
@@ -218,15 +206,12 @@
                     {
                         <ul class="list-group list-group-flush">
                             @foreach (var participante in
-                                                                            Model.Evento.Participantes
-                                                                                .Where(p =>
-                                                                                    p.Estado == EstadoPedido.Aceite)
-                                                                                .OrderBy(p =>
-                                                                                    p.Utilizador.Nome))
+                                Model.Evento.Participantes
+                                    .Where(p => p.Estado == EstadoPedido.Aceite)
+                                    .OrderBy(p => p.Utilizador.Nome))
                             {
                                 <li class="list-group-item participante-item px-0">
                                     <div class="d-flex align-items-center gap-3">
-
                                         <partial name="_UserAvatar"
                                         model="new JoinIt.Web.ViewModels.AvatarUtilizadorViewModel
                                              {
@@ -236,21 +221,18 @@
                                              }" />
 
                                         <div>
-                                            <a asp-page="/Users/Details"
-                                            asp-route-id="@participante.UtilizadorId"
+                                            <a asp-page="/Users/Details" asp-route-id="@participante.UtilizadorId"
                                             class="text-decoration-none">
                                                 @participante.Utilizador.Nome
                                             </a>
-
                                             @if (participante.UtilizadorId ==
-                                                                                                                 Model.Evento.CriadorId)
+                                                Model.Evento.CriadorId)
                                             {
                                                 <span class="badge bg-primary ms-2">
                                                     Criador
                                                 </span>
                                             }
                                         </div>
-
                                     </div>
                                 </li>
                             }
@@ -263,22 +245,18 @@
         {
             <div class="card evento-details-card evento-online-card mb-4">
                 <div class="card-body p-4">
-
                     <h4 class="details-section-title">
                         Evento online
                     </h4>
-
                     <p class="text-muted mb-3">
                         Este evento decorre totalmente online.
                     </p>
-
                     @if (Model.PodeVerLinkOnline &&
                          !string.IsNullOrWhiteSpace(Model.Evento.LinkOnline))
                     {
                         <div class="evento-online-access">
                             <div>
                                 <strong>Link de acesso</strong>
-
                                 <p class="text-muted small mb-0">
                                     @if (Model.PodeGerir)
                                     {
@@ -290,10 +268,7 @@
                                     }
                                 </p>
                             </div>
-
-                            <a href="@Model.Evento.LinkOnline"
-                               target="_blank"
-                               rel="noopener noreferrer"
+                            <a href="@Model.Evento.LinkOnline" target="_blank" rel="noopener noreferrer"
                                class="btn btn-primary">
                                 Entrar no evento
                             </a>
@@ -303,7 +278,6 @@
                     {
                         <div class="evento-online-private">
                             <strong>Link reservado aos participantes</strong>
-
                             <p class="text-muted small mb-0">
                                 Participa no evento para obteres acesso ao link.
                             </p>
@@ -315,36 +289,28 @@
         }
 
     </div>
-
     <div class="col-lg-4">
-
         <div class="card evento-details-card evento-info-card mb-4">
             <div class="card-body p-4">
                 <h2 class="details-section-title">
                     Informações
                 </h2>
-
                 <dl class="row mb-0">
                     <dt class="col-sm-5">
                         Início
                     </dt>
-
                     <dd class="col-sm-7">
                         @Model.Evento.DataHora.ToString("dd/MM/yyyy HH:mm")
                     </dd>
-
                     <dt class="col-sm-5">
                         Fim
                     </dt>
-
                     <dd class="col-sm-7">
                         @Model.Evento.DataFim.ToString("dd/MM/yyyy HH:mm")
                     </dd>
-
                     <dt class="col-sm-5">
                         Duração
                     </dt>
-
                     <dd class="col-sm-7">
                         @{
                             TimeSpan duracao =
@@ -367,30 +333,24 @@
                             }
                         }
                     </dd>
-
                     <dt class="col-sm-5">
                         Lotação
                     </dt>
-
                     <dd class="col-sm-7">
                         @Model.NumeroParticipantes /
                         @Model.Evento.NumMaxParticipantes
                     </dd>
-
                     <dt class="col-sm-5">
                         Estado
                     </dt>
-
                     <dd class="col-sm-7">
                         <span class="estado-badge @classeEstado">
                             @estado
                         </span>
                     </dd>
-
                     <dt class="col-sm-5">
                         Tipo
                     </dt>
-
                     <dd class="col-sm-7">
                         @(Model.Evento.IsOnline ? "Online" : "Presencial")
                     </dd>
@@ -405,10 +365,10 @@
                             @Model.Evento.Local
                         </dd>
                     }
+
                 </dl>
             </div>
         </div>
-
         <div class="card evento-details-card mb-4">
             <div class="card-body p-4">
                 <h2 class="details-section-title">
@@ -416,16 +376,15 @@
                 </h2>
 
                 @foreach (var eventoCategoria in
-                    Model.Evento.EventosCategorias
-                        .OrderBy(ec => ec.Categoria.Nome))
+                    Model.Evento.EventosCategorias.OrderBy(ec => ec.Categoria.Nome))
                 {
                     <span class="categoria-badge mb-1">
                         @eventoCategoria.Categoria.Nome
                     </span>
                 }
+
             </div>
         </div>
-
     </div>
 </div>
 
@@ -433,88 +392,62 @@
 {
     <div class="alert alert-info">
         Tens um convite pendente para este evento.
-
-        <a asp-page="/Convites/Index"
-           class="alert-link">
+        <a asp-page="/Convites/Index" class="alert-link">
             Responder ao convite
         </a>
     </div>
 }
 
 <div class="evento-actions-card d-flex flex-wrap align-items-center gap-2">
-    <a asp-page="./Index"
-       class="btn btn-outline-secondary">
+    <a asp-page="./Index" class="btn btn-outline-secondary">
         Voltar aos eventos
     </a>
 
     @if (Model.PodeGerir || Model.EstaAParticipar)
     {
-        <a asp-page="./Chat"
-           asp-route-id="@Model.Evento.Id"
-           class="btn btn-outline-primary">
+        <a asp-page="./Chat" asp-route-id="@Model.Evento.Id" class="btn btn-outline-primary">
             Abrir chat
         </a>
     }
 
     @if (Model.PodeGerir)
     {
-        @if (Model.Evento.Estado != EstadoEvento.Cancelado &&
-             Model.Evento.Estado != EstadoEvento.Terminado)
+        @if (Model.Evento.Estado != EstadoEvento.Cancelado && Model.Evento.Estado != EstadoEvento.Terminado)
         {
-            @if (Model.Evento.IsPrivado &&
-                 Model.Evento.Estado == EstadoEvento.ParaBreve)
+            @if (Model.Evento.IsPrivado && Model.Evento.Estado == EstadoEvento.ParaBreve)
             {
-                <a asp-page="./Invite"
-                   asp-route-id="@Model.Evento.Id"
-                   class="btn btn-success">
+                <a asp-page="./Invite" asp-route-id="@Model.Evento.Id" class="btn btn-success">
                     Convidar amigos
                 </a>
             }
 
-            <a asp-page="./Edit"
-               asp-route-id="@Model.Evento.Id"
-               class="btn btn-primary">
+            <a asp-page="./Edit" asp-route-id="@Model.Evento.Id" class="btn btn-primary">
                 Editar evento
             </a>
-
-            <form method="post"
-                  asp-page-handler="Cancelar"
-                  asp-route-id="@Model.Evento.Id"
+            <form method="post" asp-page-handler="Cancelar" asp-route-id="@Model.Evento.Id"
                   onsubmit="return confirm('Tens a certeza de que pretendes cancelar este evento?');">
-
-                <button type="submit"
-                        class="btn btn-warning">
+                <button type="submit" class="btn btn-warning">
                     Cancelar evento
                 </button>
             </form>
         }
 
-        <a asp-page="./Delete"
-           asp-route-id="@Model.Evento.Id"
-           class="btn btn-danger">
+        <a asp-page="./Delete" asp-route-id="@Model.Evento.Id" class="btn btn-danger">
             Apagar evento
         </a>
     }
     else if (Model.EstaAParticipar)
     {
-        <form method="post"
-              asp-page-handler="Sair"
-              asp-route-id="@Model.Evento.Id">
-
-            <button type="submit"
-                    class="btn btn-outline-danger">
+        <form method="post" asp-page-handler="Sair" asp-route-id="@Model.Evento.Id">
+            <button type="submit" class="btn btn-outline-danger">
                 Sair do evento
             </button>
         </form>
     }
     else if (Model.PodeParticipar)
     {
-        <form method="post"
-              asp-page-handler="Participar"
-              asp-route-id="@Model.Evento.Id">
-
-            <button type="submit"
-                    class="btn btn-success">
+        <form method="post" asp-page-handler="Participar" asp-route-id="@Model.Evento.Id">
+            <button type="submit" class="btn btn-success">
                 Participar
             </button>
         </form>
@@ -525,12 +458,9 @@
             Evento cheio
         </span>
     }
-    else if (User.Identity?.IsAuthenticated != true &&
-             !Model.Evento.IsPrivado)
+    else if (User.Identity?.IsAuthenticated != true && !Model.Evento.IsPrivado)
     {
-        <a asp-area="Identity"
-           asp-page="/Account/Login"
-           asp-route-returnUrl="@returnUrl"
+        <a asp-area="Identity" asp-page="/Account/Login" asp-route-returnUrl="@returnUrl"
            class="btn btn-outline-primary">
             Iniciar sessão para participar
         </a>
@@ -540,8 +470,7 @@
 @section Scripts {
     @if (temCoordenadas)
     {
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-                crossorigin="">
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="">
         </script>
 
         <script>
@@ -549,6 +478,7 @@
                 const latitudeEvento = @latitudeMapa;
                 const longitudeEvento = @longitudeMapa;
 
+                //Inicializa o mapa Leaflet centrado nas coordenadas do evento
                 const mapa = L.map("mapaEvento").setView(
                     [latitudeEvento, longitudeEvento],
                     16
@@ -563,6 +493,7 @@
                     }
                 ).addTo(mapa);
 
+                //Assinala no mapa a localização exata do evento
                 L.marker(
                     [latitudeEvento, longitudeEvento]
                 ).addTo(mapa);

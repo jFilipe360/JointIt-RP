@@ -14,14 +14,11 @@
         <h1 class="section-title mb-2">
             Os meus eventos
         </h1>
-
         <p class="text-muted mb-0">
             Consulta os eventos que criaste e aqueles em que participas.
         </p>
     </div>
-
-    <a asp-page="./Create"
-       class="btn btn-primary px-4">
+    <a asp-page="./Create" class="btn btn-primary px-4">
         Criar evento
     </a>
 </div>
@@ -29,55 +26,42 @@
 <div class="card meus-eventos-filtros mb-5">
     <div class="card-body p-4">
         <div class="d-flex flex-wrap gap-2 meus-eventos-filter-buttons">
-
-            <a asp-page="./MyEvents"
-               asp-route-filtro="ativos"
+            <a asp-page="./MyEvents" asp-route-filtro="ativos"
                class="btn @(Model.Filtro == "ativos"
                    ? "btn-primary"
                    : "btn-outline-primary")">
                 Ativos
             </a>
-
-            <a asp-page="./MyEvents"
-               asp-route-filtro="futuros"
+            <a asp-page="./MyEvents" asp-route-filtro="futuros"
                class="btn @(Model.Filtro == "futuros"
                    ? "btn-primary"
                    : "btn-outline-primary")">
                 Futuros
             </a>
-
-            <a asp-page="./MyEvents"
-               asp-route-filtro="decorrer"
+            <a asp-page="./MyEvents" asp-route-filtro="decorrer"
                class="btn @(Model.Filtro == "decorrer"
                    ? "btn-primary"
                    : "btn-outline-primary")">
                 A decorrer
             </a>
-
-            <a asp-page="./MyEvents"
-               asp-route-filtro="terminados"
+            <a asp-page="./MyEvents" asp-route-filtro="terminados"
                class="btn @(Model.Filtro == "terminados"
                    ? "btn-primary"
                    : "btn-outline-primary")">
                 Terminados
             </a>
-
-            <a asp-page="./MyEvents"
-               asp-route-filtro="cancelados"
+            <a asp-page="./MyEvents" asp-route-filtro="cancelados"
                class="btn @(Model.Filtro == "cancelados"
                    ? "btn-primary"
                    : "btn-outline-primary")">
                 Cancelados
             </a>
-
-            <a asp-page="./MyEvents"
-               asp-route-filtro="todos"
+            <a asp-page="./MyEvents" asp-route-filtro="todos"
                class="btn @(Model.Filtro == "todos"
                    ? "btn-secondary"
                    : "btn-outline-secondary")">
                 Todos
             </a>
-
         </div>
     </div>
 </div>
@@ -87,12 +71,10 @@
         <p class="section-kicker mb-1">
             ORGANIZADOS POR TI
         </p>
-
         <h2 class="h4 fw-bold mb-0">
             Eventos criados por mim
         </h2>
     </div>
-
     <span class="resultados-count">
         @Model.EventosCriados.Count
         @(Model.EventosCriados.Count == 1 ? "evento" : "eventos")
@@ -105,7 +87,6 @@
         <h3 class="h5 fw-bold mb-2">
             Ainda não tens eventos nesta categoria
         </h3>
-
         <p class="text-muted mb-0">
             Não existem eventos criados por ti neste filtro.
         </p>
@@ -144,19 +125,14 @@ else
             <div class="col-md-6 col-lg-4">
                 <div class="card evento-list-card h-100">
                     <div class="card-body d-flex flex-column p-4">
-
-                        <div class="d-flex justify-content-between
-                                    align-items-start gap-2 mb-2">
-
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
                             <h5 class="card-title mb-0">
                                 @evento.Titulo
                             </h5>
-
                             <span class="estado-badge @classeEstado">
                                 @nomeEstado
                             </span>
                         </div>
-
                         <div class="mb-3">
                             @if (evento.IsPrivado)
                             {
@@ -177,16 +153,13 @@ else
                                 @(evento.IsOnline ? "Online" : "Presencial")
                             </span>
                         </div>
-
                         <p class="evento-card-descricao text-muted">
                             @evento.Descricao
                         </p>
-
                         <p class="mb-1">
                             <strong>Início:</strong>
                             @evento.DataHora.ToString("dd/MM/yyyy HH:mm")
                         </p>
-
                         <p class="mb-1">
                             <strong>Fim:</strong>
                             @evento.DataFim.ToString("dd/MM/yyyy HH:mm")
@@ -230,6 +203,7 @@ else
                         }
 
                         <div class="mb-3">
+
                             @foreach (var eventoCategoria in
                                 evento.EventosCategorias
                                     .OrderBy(ec => ec.Categoria.Nome))
@@ -238,21 +212,17 @@ else
                                     @eventoCategoria.Categoria.Nome
                                 </span>
                             }
-                        </div>
 
+                        </div>
                         <div class="d-flex flex-wrap gap-2 mt-auto">
-                            <a asp-page="./Details"
-                               asp-route-id="@evento.Id"
-                               class="btn btn-primary">
+                            <a asp-page="./Details" asp-route-id="@evento.Id" class="btn btn-primary">
                                 Ver detalhes
                             </a>
 
                             @if (evento.Estado != EstadoEvento.Terminado &&
                                  evento.Estado != EstadoEvento.Cancelado)
                             {
-                                <a asp-page="./Edit"
-                                   asp-route-id="@evento.Id"
-                                   class="btn btn-outline-secondary">
+                                <a asp-page="./Edit" asp-route-id="@evento.Id" class="btn btn-outline-secondary">
                                     Editar
                                 </a>
                             }
@@ -269,12 +239,10 @@ else
         <p class="section-kicker mb-1">
             PARTICIPAÇÕES
         </p>
-
         <h2 class="h4 fw-bold mb-0">
             Eventos em que participo
         </h2>
     </div>
-
     <span class="resultados-count">
         @Model.EventosParticipados.Count
         @(Model.EventosParticipados.Count == 1 ? "evento" : "eventos")
@@ -287,7 +255,6 @@ else
         <h3 class="h5 fw-bold mb-2">
             Nenhuma participação encontrada
         </h3>
-
         <p class="text-muted mb-0">
             Não existem participações neste filtro.
         </p>
@@ -326,19 +293,15 @@ else
             <div class="col-md-6 col-lg-4">
                 <div class="card evento-list-card h-100">
                     <div class="card-body d-flex flex-column p-4">
-
                         <div class="d-flex justify-content-between
                                     align-items-start gap-2 mb-2">
-
                             <h5 class="card-title mb-0">
                                 @evento.Titulo
                             </h5>
-
                             <span class="estado-badge @classeEstado">
                                 @nomeEstado
                             </span>
                         </div>
-
                         <div class="mb-3">
                             @if (evento.IsPrivado)
                             {
@@ -359,26 +322,20 @@ else
                                 @(evento.IsOnline ? "Online" : "Presencial")
                             </span>
                         </div>
-
                         <p class="evento-card-descricao text-muted">
                             @evento.Descricao
                         </p>
-
                         <p class="mb-1">
                             <strong>Criador:</strong>
-
-                            <a asp-page="/Users/Details"
-                               asp-route-id="@evento.CriadorId"
+                            <a asp-page="/Users/Details" asp-route-id="@evento.CriadorId"
                                class="text-decoration-none">
                                 @evento.Criador.Nome
                             </a>
                         </p>
-
                         <p class="mb-1">
                             <strong>Início:</strong>
                             @evento.DataHora.ToString("dd/MM/yyyy HH:mm")
                         </p>
-
                         <p class="mb-1">
                             <strong>Fim:</strong>
                             @evento.DataFim.ToString("dd/MM/yyyy HH:mm")
@@ -433,13 +390,10 @@ else
                         </div>
 
                         <div class="mt-auto">
-                            <a asp-page="./Details"
-                               asp-route-id="@evento.Id"
-                               class="btn btn-primary">
+                            <a asp-page="./Details" asp-route-id="@evento.Id" class="btn btn-primary">
                                 Ver detalhes
                             </a>
                         </div>
-
                     </div>
                 </div>
             </div>

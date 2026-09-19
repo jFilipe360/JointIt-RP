@@ -16,13 +16,12 @@ namespace JoinIt.Web.Pages.Admin.Categorias
             _context = context;
         }
 
-        public IList<Categoria> Categorias { get; private set; }
-            = new List<Categoria>();
+        public IList<Categoria> Categorias { get; private set; } = new List<Categoria>();
 
+        //Carrega as categorias ordenadas pelo nome
         public async Task OnGetAsync()
         {
-            Categorias = await _context
-                .Set<Categoria>()
+            Categorias = await _context.Categorias
                 .AsNoTracking()
                 .OrderBy(c => c.Nome)
                 .ToListAsync();

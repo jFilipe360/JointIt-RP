@@ -14,9 +14,7 @@ namespace JoinIt.Web.Pages.Eventos
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public DeleteModel(
-            ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager)
+        public DeleteModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _userManager = userManager;
@@ -66,7 +64,6 @@ namespace JoinIt.Web.Pages.Eventos
             }
 
             var evento = await _context.Eventos
-                .Include(e => e.EventosCategorias)
                 .FirstOrDefaultAsync(e => e.Id == id);
 
             if (evento is null)
@@ -83,8 +80,7 @@ namespace JoinIt.Web.Pages.Eventos
             _context.Eventos.Remove(evento);
             await _context.SaveChangesAsync();
 
-            TempData["MensagemSucesso"] =
-                "O evento foi apagado com sucesso.";
+            TempData["MensagemSucesso"] = "O evento foi apagado com sucesso.";
 
             return RedirectToPage("./Index");
         }

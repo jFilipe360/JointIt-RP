@@ -3,10 +3,11 @@ using System.ComponentModel.DataAnnotations;
 
 namespace JoinIt.Api.Models
 {
+    // Utilizador da aplicação, baseado no ASP.NET Core Identity
     public class ApplicationUser : IdentityUser
     {
-        [Required]
-        [StringLength(100)]
+        [Required(ErrorMessage = "O nome é obrigatório.")]
+        [StringLength(100, ErrorMessage = "O nome não pode ultrapassar 100 caracteres.")]
         public string Nome { get; set; } = string.Empty;
 
         [StringLength(300)]
@@ -14,6 +15,7 @@ namespace JoinIt.Api.Models
 
         public DateTime CriadoEm { get; set; } = DateTime.Now;
 
+        // Relações associadas ao utilizador
         public ICollection<Evento> EventosCriados { get; set; } = new List<Evento>();
 
         public ICollection<Participante> Participacoes { get; set; } = new List<Participante>();

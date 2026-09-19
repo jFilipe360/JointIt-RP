@@ -2,6 +2,7 @@
 using JoinIt.Api.DTOs.Categorias;
 using JoinIt.Api.DTOs.Eventos;
 using JoinIt.Api.DTOs.Users;
+using JoinIt.Api.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,7 @@ namespace JoinIt.Api.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/users")]
+// Disponibiliza operações autenticadas de consulta de utilizadores
 public class UsersController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -21,11 +23,11 @@ public class UsersController : ControllerBase
         _context = context;
     }
 
+    // Lista os restantes utilizadores, excluindo o utilizador autenticado
     [HttpGet]
     public async Task<ActionResult<IEnumerable<UserResumoDto>>> GetUsers()
     {
-        var utilizadorId =
-            User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (utilizadorId == null)
         {
@@ -47,11 +49,11 @@ public class UsersController : ControllerBase
         return Ok(utilizadores);
     }
 
+    // Devolve o perfil público de um utilizador e os eventos públicos que criou
     [HttpGet("{id}")]
     public async Task<ActionResult<UserDetalhesDto>> GetUser(string id)
     {
-        var utilizadorAtualId =
-            User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var utilizadorAtualId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (utilizadorAtualId == null)
         {
@@ -81,9 +83,10 @@ public class UsersController : ControllerBase
                         Morada = e.Morada,
                         IsPrivado = e.IsPrivado,
                         NumMaxParticipantes = e.NumMaxParticipantes,
-                        NumParticipantes = e.Participantes.Count(),
-                        VagasDisponiveis =
-                            e.NumMaxParticipantes - e.Participantes.Count(),
+                        NumParticipantes = e.Participantes.Count(p => p.Estado == EstadoPedido.Aceite),
+                        VagasDisponiveis = Math.Max(0,
+                            e.NumMaxParticipantes -
+                            e.Participantes.Count(p => p.Estado == EstadoPedido.Aceite)),
                         Estado = e.Estado,
                         CriadorNome = u.Nome,
                         Categorias = e.EventosCategorias

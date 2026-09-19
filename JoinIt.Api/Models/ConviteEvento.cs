@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace JoinIt.Api.Models
 {
+    // Representa um convite enviado a um utilizador para participar num evento
     public class ConviteEvento
     {
         public int Id { get; set; }
@@ -11,11 +12,13 @@ namespace JoinIt.Api.Models
 
         public Evento Evento { get; set; } = null!;
 
+        // Utilizador que enviou o convite
         [Required]
         public string EmissorId { get; set; } = string.Empty;
 
         public ApplicationUser Emissor { get; set; } = null!;
 
+        // Utilizador que recebeu o convite
         [Required]
         public string RecetorId { get; set; } = string.Empty;
 

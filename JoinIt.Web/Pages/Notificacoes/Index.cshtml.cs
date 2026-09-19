@@ -14,16 +14,13 @@ namespace JoinIt.Web.Pages.Notificacoes
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public IndexModel(
-            ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager)
+        public IndexModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _userManager = userManager;
         }
 
-        public IList<Notificacao> Notificacoes { get; private set; }
-            = new List<Notificacao>();
+        public IList<Notificacao> Notificacoes { get; private set; } = new List<Notificacao>();
 
         public int NumeroNaoLidas { get; private set; }
 
@@ -41,6 +38,7 @@ namespace JoinIt.Web.Pages.Notificacoes
             return Page();
         }
 
+        // Marca como lida uma notificação pertencente ao utilizador atual
         public async Task<IActionResult> OnPostMarcarLidaAsync(int id)
         {
             string? utilizadorId = _userManager.GetUserId(User);
@@ -64,8 +62,7 @@ namespace JoinIt.Web.Pages.Notificacoes
 
             await _context.SaveChangesAsync();
 
-            TempData["MensagemSucesso"] =
-                "Notificação marcada como lida.";
+            TempData["MensagemSucesso"] = "Notificação marcada como lida.";
 
             return RedirectToPage();
         }
@@ -93,12 +90,12 @@ namespace JoinIt.Web.Pages.Notificacoes
 
             await _context.SaveChangesAsync();
 
-            TempData["MensagemSucesso"] =
-                "Notificação apagada.";
+            TempData["MensagemSucesso"] = "Notificação apagada.";
 
             return RedirectToPage();
         }
 
+        // Marca a notificação como lida e abre a ligação associada, quando válida
         public async Task<IActionResult> OnPostAbrirAsync(int id)
         {
             string? utilizadorId = _userManager.GetUserId(User);
@@ -134,6 +131,7 @@ namespace JoinIt.Web.Pages.Notificacoes
             return RedirectToPage();
         }
 
+        // Marca como lidas todas as notificações não lidas do utilizador
         public async Task<IActionResult> OnPostMarcarTodasAsync()
         {
             string? utilizadorId = _userManager.GetUserId(User);
@@ -145,8 +143,7 @@ namespace JoinIt.Web.Pages.Notificacoes
 
             var notificacoesNaoLidas = await _context.Notificacoes
                 .Where(n =>
-                    n.UtilizadorId == utilizadorId &&
-                    !n.Lida)
+                    n.UtilizadorId == utilizadorId && !n.Lida)
                 .ToListAsync();
 
             foreach (var notificacao in notificacoesNaoLidas)
@@ -156,12 +153,12 @@ namespace JoinIt.Web.Pages.Notificacoes
 
             await _context.SaveChangesAsync();
 
-            TempData["MensagemSucesso"] =
-                "Todas as notificações foram marcadas como lidas.";
+            TempData["MensagemSucesso"] = "Todas as notificações foram marcadas como lidas.";
 
             return RedirectToPage();
         }
 
+        // Remove todas as notificações pertencentes ao utilizador atual
         public async Task<IActionResult> OnPostLimparTodasAsync()
         {
             string? utilizadorId = _userManager.GetUserId(User);
@@ -182,29 +179,14 @@ namespace JoinIt.Web.Pages.Notificacoes
                 await _context.SaveChangesAsync();
             }
 
-            TempData["MensagemSucesso"] =
-                "Todas as notificações foram apagadas.";
+            TempData["MensagemSucesso"] = "Todas as notificações foram apagadas.";
 
             return RedirectToPage();
         }
 
-        private async Task CarregarNotificacoesAsync(
-            string utilizadorId)
+        public async Task<IActionResult> OnPostMarcarDropdownLidasAsync(List<int> ids)
         {
-            Notificacoes = await _context.Notificacoes
-                .AsNoTracking()
-                .Where(n => n.UtilizadorId == utilizadorId)
-                .OrderByDescending(n => n.CriadoEm)
-                .ToListAsync();
-
-            NumeroNaoLidas = Notificacoes.Count(n => !n.Lida);
-        }
-
-        public async Task<IActionResult> OnPostMarcarDropdownLidasAsync(
-    List<int> ids)
-        {
-            string? utilizadorId =
-                _userManager.GetUserId(User);
+            string? utilizadorId = _userManager.GetUserId(User);
 
             if (string.IsNullOrEmpty(utilizadorId))
             {
@@ -220,6 +202,7 @@ namespace JoinIt.Web.Pages.Notificacoes
                 });
             }
 
+            // Marca apenas as notificações não lidas que estavam presentes no dropdown
             var notificacoes = await _context.Notificacoes
                 .Where(n =>
                     n.UtilizadorId == utilizadorId &&
@@ -239,6 +222,18 @@ namespace JoinIt.Web.Pages.Notificacoes
                 sucesso = true,
                 marcadas = notificacoes.Count
             });
+        }
+
+        // Carrega as notificações por ordem recente e calcula o número de não lidas
+        private async Task CarregarNotificacoesAsync(string utilizadorId)
+        {
+            Notificacoes = await _context.Notificacoes
+                .AsNoTracking()
+                .Where(n => n.UtilizadorId == utilizadorId)
+                .OrderByDescending(n => n.CriadoEm)
+                .ToListAsync();
+
+            NumeroNaoLidas = Notificacoes.Count(n => !n.Lida);
         }
     }
 }

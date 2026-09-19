@@ -19,9 +19,7 @@ namespace JoinIt.Web.Pages.Eventos
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEstadoEventoService _estadoEventoService;
 
-        public EditModel(
-            ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager,
+        public EditModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager,
             IEstadoEventoService estadoEventoService)
         {
             _context = context;
@@ -32,24 +30,19 @@ namespace JoinIt.Web.Pages.Eventos
         [BindProperty]
         public EventoInputModel Input { get; set; } = new();
 
-        public IList<SelectListItem> Categorias { get; set; }
-            = new List<SelectListItem>();
+        public IList<SelectListItem> Categorias { get; set; } = new List<SelectListItem>();
 
         public class EventoInputModel
         {
             public int Id { get; set; }
 
             [Required(ErrorMessage = "O título é obrigatório.")]
-            [StringLength(
-                100,
-                ErrorMessage = "O título não pode ultrapassar 100 caracteres.")]
+            [StringLength(100, ErrorMessage = "O título não pode ultrapassar 100 caracteres.")]
             [Display(Name = "Título")]
             public string Titulo { get; set; } = string.Empty;
 
             [Required(ErrorMessage = "A descrição é obrigatória.")]
-            [StringLength(
-                1000,
-                ErrorMessage = "A descrição não pode ultrapassar 1000 caracteres.")]
+            [StringLength(1000, ErrorMessage = "A descrição não pode ultrapassar 1000 caracteres.")]
             [Display(Name = "Descrição")]
             public string Descricao { get; set; } = string.Empty;
 
@@ -64,45 +57,30 @@ namespace JoinIt.Web.Pages.Eventos
             [Display(Name = "Evento online")]
             public bool IsOnline { get; set; }
 
-            [StringLength(
-                500,
-                ErrorMessage = "O link não pode ultrapassar 500 caracteres.")]
+            [StringLength(500, ErrorMessage = "O link não pode ultrapassar 500 caracteres.")]
             [Display(Name = "Link do evento online")]
             public string? LinkOnline { get; set; }
 
-            [StringLength(
-                150,
-                ErrorMessage = "O local não pode ultrapassar 150 caracteres.")]
+            [StringLength(150, ErrorMessage = "O local não pode ultrapassar 150 caracteres.")]
             [Display(Name = "Local")]
             public string? Local { get; set; }
 
-            [StringLength(
-                250,
-                ErrorMessage = "A morada não pode ultrapassar 250 caracteres.")]
+            [StringLength(250, ErrorMessage = "A morada não pode ultrapassar 250 caracteres.")]
             [Display(Name = "Morada")]
             public string? Morada { get; set; }
 
-            [Range(
-                2,
-                1000,
-                ErrorMessage = "A lotação deve estar entre 2 e 1000.")]
+            [Range(2, 1000, ErrorMessage = "A lotação deve estar entre 2 e 1000.")]
             [Display(Name = "Número máximo de participantes")]
             public int NumMaxParticipantes { get; set; }
 
             [Display(Name = "Evento privado")]
             public bool IsPrivado { get; set; }
 
-            [Range(
-                -90,
-                90,
-                ErrorMessage = "A latitude deve estar entre -90 e 90.")]
+            [Range(-90, 90, ErrorMessage = "A latitude deve estar entre -90 e 90.")]
             [Display(Name = "Latitude")]
             public double? Latitude { get; set; }
 
-            [Range(
-                -180,
-                180,
-                ErrorMessage = "A longitude deve estar entre -180 e 180.")]
+            [Range(-180, 180, ErrorMessage = "A longitude deve estar entre -180 e 180.")]
             [Display(Name = "Longitude")]
             public double? Longitude { get; set; }
 
@@ -139,8 +117,7 @@ namespace JoinIt.Web.Pages.Eventos
 
             if (evento.Estado == EstadoEvento.Cancelado)
             {
-                TempData["MensagemErro"] =
-                    "Não é possível editar um evento cancelado.";
+                TempData["MensagemErro"] = "Não é possível editar um evento cancelado.";
 
                 return RedirectToPage(
                     "./Details",
@@ -149,14 +126,14 @@ namespace JoinIt.Web.Pages.Eventos
 
             if (evento.Estado == EstadoEvento.Terminado)
             {
-                TempData["MensagemErro"] =
-                    "Não é possível editar um evento terminado.";
+                TempData["MensagemErro"] = "Não é possível editar um evento terminado.";
 
                 return RedirectToPage(
                     "./Details",
                     new { id = evento.Id });
             }
 
+            //Preenche o formulário com os dados do evento existente
             Input = new EventoInputModel
             {
                 Id = evento.Id,
@@ -173,8 +150,7 @@ namespace JoinIt.Web.Pages.Eventos
                 Latitude = evento.Latitude,
                 Longitude = evento.Longitude,
                 CategoriasSelecionadas = evento.EventosCategorias
-                    .Select(ec => ec.CategoriaId)
-                    .ToList()
+                    .Select(ec => ec.CategoriaId).ToList()
             };
 
             await CarregarCategoriasAsync();
@@ -211,8 +187,7 @@ namespace JoinIt.Web.Pages.Eventos
 
             if (evento.Estado == EstadoEvento.Cancelado)
             {
-                TempData["MensagemErro"] =
-                    "Não é possível editar um evento cancelado.";
+                TempData["MensagemErro"] = "Não é possível editar um evento cancelado.";
 
                 return RedirectToPage(
                     "./Details",
@@ -221,8 +196,7 @@ namespace JoinIt.Web.Pages.Eventos
 
             if (evento.Estado == EstadoEvento.Terminado)
             {
-                TempData["MensagemErro"] =
-                    "Não é possível editar um evento terminado.";
+                TempData["MensagemErro"] = "Não é possível editar um evento terminado.";
 
                 return RedirectToPage(
                     "./Details",
@@ -232,9 +206,8 @@ namespace JoinIt.Web.Pages.Eventos
             ValidarDatas();
             ValidarTipoEvento();
 
-            var categoriasSelecionadas = Input.CategoriasSelecionadas
-                .Distinct()
-                .ToList();
+            //Remove categorias repetidas e valida os IDs recebidos
+            var categoriasSelecionadas = Input.CategoriasSelecionadas.Distinct().ToList();
 
             if (categoriasSelecionadas.Count == 0)
             {
@@ -255,6 +228,7 @@ namespace JoinIt.Web.Pages.Eventos
                     "Uma das categorias selecionadas não é válida.");
             }
 
+            //Impede de reduzir a lotação abaixo do número atual de participantes
             int numeroParticipantes = evento.Participantes.Count(p => p.Estado == EstadoPedido.Aceite);
 
             if (Input.NumMaxParticipantes < numeroParticipantes)
@@ -271,6 +245,7 @@ namespace JoinIt.Web.Pages.Eventos
                 return Page();
             }
 
+            //Atualiza a entidade apenas depois de todas as validações terem passado
             evento.Titulo = Input.Titulo.Trim();
             evento.Descricao = Input.Descricao.Trim();
             evento.DataHora = Input.DataHora;
@@ -299,18 +274,19 @@ namespace JoinIt.Web.Pages.Eventos
             evento.NumMaxParticipantes = Input.NumMaxParticipantes;
             evento.IsPrivado = Input.IsPrivado;
 
+            //Sincroniza as relações muitos-para-muitos com as categorias selecionadas
             AtualizarCategorias(evento, categoriasValidas);
 
             await _context.SaveChangesAsync();
 
-            TempData["MensagemSucesso"] =
-                "O evento foi atualizado com sucesso.";
+            TempData["MensagemSucesso"] = "O evento foi atualizado com sucesso.";
 
             return RedirectToPage(
                 "./Details",
                 new { id = evento.Id });
         }
 
+        //Garante que o evento começa no futuro e termina depois de começar
         private void ValidarDatas()
         {
             if (Input.DataHora <= DateTime.Now)
@@ -328,6 +304,7 @@ namespace JoinIt.Web.Pages.Eventos
             }
         }
 
+        //Aplica as regras específicas dos eventos online e presenciais
         private void ValidarTipoEvento()
         {
             if (Input.IsOnline)
@@ -366,6 +343,7 @@ namespace JoinIt.Web.Pages.Eventos
             ValidarCoordenadas();
         }
 
+        //Latitude e longitude devem ser fornecidas em conjunto
         private void ValidarCoordenadas()
         {
             bool temLatitude = Input.Latitude.HasValue;
@@ -383,21 +361,17 @@ namespace JoinIt.Web.Pages.Eventos
             }
         }
 
-        private void AtualizarCategorias(
-            Evento evento,
-            List<int> categoriasSelecionadas)
+        //Adiciona e remove apenas as relações de categorias que foram alteradas
+        private void AtualizarCategorias(Evento evento, List<int> categoriasSelecionadas)
         {
-            var categoriasAtuais = evento.EventosCategorias
-                .Select(ec => ec.CategoriaId)
-                .ToList();
+            var categoriasAtuais = evento.EventosCategorias.Select(ec => ec.CategoriaId).ToList();
 
             var categoriasParaRemover = evento.EventosCategorias
                 .Where(ec =>
                     !categoriasSelecionadas.Contains(ec.CategoriaId))
                 .ToList();
 
-            _context.EventosCategorias.RemoveRange(
-                categoriasParaRemover);
+            _context.EventosCategorias.RemoveRange(categoriasParaRemover);
 
             var categoriasParaAdicionar = categoriasSelecionadas
                 .Where(id => !categoriasAtuais.Contains(id));

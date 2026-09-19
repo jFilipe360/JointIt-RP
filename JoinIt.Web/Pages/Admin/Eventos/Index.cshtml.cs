@@ -15,10 +15,7 @@ namespace JoinIt.Web.Pages.Admin.Eventos
         private readonly IEstadoEventoService _estadoEventoService;
         private readonly INotificacaoService _notificacaoService;
 
-        public IndexModel(
-            ApplicationDbContext context,
-            IEstadoEventoService estadoEventoService,
-            INotificacaoService notificacaoService)
+        public IndexModel(ApplicationDbContext context, IEstadoEventoService estadoEventoService, INotificacaoService notificacaoService)
         {
             _context = context;
             _estadoEventoService = estadoEventoService;
@@ -31,9 +28,9 @@ namespace JoinIt.Web.Pages.Admin.Eventos
         [BindProperty(SupportsGet = true)]
         public EstadoEvento? Estado { get; set; }
 
-        public IList<EventoAdminViewModel> Eventos { get; private set; }
-            = new List<EventoAdminViewModel>();
+        public IList<EventoAdminViewModel> Eventos { get; private set; } = new List<EventoAdminViewModel>();
 
+        //Dados necessários para apresentar cada evento na página de administração
         public class EventoAdminViewModel
         {
             public int Id { get; set; }
@@ -59,6 +56,7 @@ namespace JoinIt.Web.Pages.Admin.Eventos
             public int NumMaxParticipantes { get; set; }
         }
 
+        //Atualiza os estados e carrega os eventos aplicando os filtros selecionados
         public async Task OnGetAsync()
         {
             await _estadoEventoService.AtualizarEstadosAsync();
@@ -67,6 +65,7 @@ namespace JoinIt.Web.Pages.Admin.Eventos
                 .AsNoTracking()
                 .AsQueryable();
 
+            //Pesquisa por título, descrição, nome do criador, local ou morada
             if (!string.IsNullOrWhiteSpace(Pesquisa))
             {
                 string pesquisa = Pesquisa.Trim();
@@ -76,19 +75,17 @@ namespace JoinIt.Web.Pages.Admin.Eventos
                     e.Descricao.Contains(pesquisa) ||
                     e.Criador.Nome.Contains(pesquisa) ||
                     (
-                        e.Local != null &&
-                        e.Local.Contains(pesquisa)
+                        e.Local != null && e.Local.Contains(pesquisa)
                     ) ||
                     (
-                        e.Morada != null &&
-                        e.Morada.Contains(pesquisa)
+                        e.Morada != null && e.Morada.Contains(pesquisa)
                     ));
             }
 
+            //Filtro por estado do evento
             if (Estado.HasValue)
             {
-                query = query.Where(e =>
-                    e.Estado == Estado.Value);
+                query = query.Where(e => e.Estado == Estado.Value);
             }
 
             Eventos = await query
@@ -105,21 +102,19 @@ namespace JoinIt.Web.Pages.Admin.Eventos
                     Estado = e.Estado,
                     CriadorNome = e.Criador.Nome,
                     NumeroParticipantes =
-                        e.Participantes.Count(p =>
-                            p.Estado == EstadoPedido.Aceite),
+                        e.Participantes.Count(p => p.Estado == EstadoPedido.Aceite),
                     NumMaxParticipantes =
                         e.NumMaxParticipantes
                 })
                 .ToListAsync();
         }
 
-        public async Task<IActionResult> OnPostCancelarAsync(
-            int id)
+        //Cancela um evento e notifica os participantes
+        public async Task<IActionResult> OnPostCancelarAsync(int id)
         {
             await _estadoEventoService.AtualizarEstadosAsync();
 
-            var evento = await _context.Eventos
-                .FirstOrDefaultAsync(e => e.Id == id);
+            var evento = await _context.Eventos .FirstOrDefaultAsync(e => e.Id == id);
 
             if (evento is null)
             {
@@ -128,25 +123,23 @@ namespace JoinIt.Web.Pages.Admin.Eventos
 
             if (evento.Estado == EstadoEvento.Cancelado)
             {
-                TempData["MensagemErro"] =
-                    "O evento já se encontra cancelado.";
+                TempData["MensagemErro"] = "O evento já se encontra cancelado.";
 
                 return RedirectToPage();
             }
 
-            if (evento.Estado == EstadoEvento.Terminado ||
-                evento.DataFim <= DateTime.Now)
+            //Eventos terminados não podem ser cancelados
+            if (evento.Estado == EstadoEvento.Terminado || evento.DataFim <= DateTime.Now)
             {
-                TempData["MensagemErro"] =
-                    "Não é possível cancelar um evento terminado.";
+                TempData["MensagemErro"] = "Não é possível cancelar um evento terminado.";
 
                 return RedirectToPage();
             }
 
+            //Reúne participantes e convidados do evento para notificação
             var participantes = await _context.Participantes
                 .Where(p =>
-                    p.EventoId == id &&
-                    p.Estado == EstadoPedido.Aceite)
+                    p.EventoId == id && p.Estado == EstadoPedido.Aceite)
                 .Select(p => p.UtilizadorId)
                 .ToListAsync();
 
@@ -154,26 +147,26 @@ namespace JoinIt.Web.Pages.Admin.Eventos
                 .Where(c =>
                     c.EventoId == id &&
                     (
-                        c.Estado == EstadoPedido.Pendente ||
-                        c.Estado == EstadoPedido.Aceite
+                        c.Estado == EstadoPedido.Pendente || c.Estado == EstadoPedido.Aceite
                     ))
                 .Select(c => c.RecetorId)
                 .ToListAsync();
 
+            //Remove duplicados e exclui o criador do evento da lista de destinatários
             var destinatarios = participantes
                 .Concat(convidados)
-                .Where(utilizadorId =>
-                    utilizadorId != evento.CriadorId)
+                .Where(utilizadorId => utilizadorId != evento.CriadorId)
                 .Distinct()
                 .ToList();
 
+            //Guarda o cancelamento do evento antes de enviar as notificações
             evento.Estado = EstadoEvento.Cancelado;
 
             await _context.SaveChangesAsync();
 
-            string link =
-                $"/Eventos/Details?id={evento.Id}";
+            string link = $"/Eventos/Details?id={evento.Id}";
 
+            //Notifica participantes e convidados do evento sobre o cancelamento
             foreach (string destinatarioId in destinatarios)
             {
                 await _notificacaoService.CriarAsync(
@@ -183,23 +176,22 @@ namespace JoinIt.Web.Pages.Admin.Eventos
                     link);
             }
 
+            //O criador do evento recebe uma notificação específica
             await _notificacaoService.CriarAsync(
                 evento.CriadorId,
                 "Evento cancelado",
                 $"O teu evento {evento.Titulo} foi cancelado pela administração.",
                 link);
 
-            TempData["MensagemSucesso"] =
-                "O evento foi cancelado.";
+            TempData["MensagemSucesso"] = "O evento foi cancelado.";
 
             return RedirectToPage();
         }
 
-        public async Task<IActionResult> OnPostApagarAsync(
-            int id)
+        //Remove definitivamente um evento da base de dados
+        public async Task<IActionResult> OnPostApagarAsync( int id)
         {
-            var evento = await _context.Eventos
-                .FirstOrDefaultAsync(e => e.Id == id);
+            var evento = await _context.Eventos.FirstOrDefaultAsync(e => e.Id == id);
 
             if (evento is null)
             {
@@ -210,8 +202,7 @@ namespace JoinIt.Web.Pages.Admin.Eventos
 
             await _context.SaveChangesAsync();
 
-            TempData["MensagemSucesso"] =
-                "O evento foi apagado definitivamente.";
+            TempData["MensagemSucesso"] = "O evento foi apagado definitivamente.";
 
             return RedirectToPage();
         }

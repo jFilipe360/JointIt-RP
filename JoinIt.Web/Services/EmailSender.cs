@@ -6,12 +6,12 @@ using MimeKit;
 
 namespace JoinIt.Web.Services
 {
+    // Serviço de envio de emails do ASP.NET Core Identity através de SMTP
     public class EmailSender : IEmailSender
     {
         private readonly EmailSettings _settings;
 
-        public EmailSender(
-            IOptions<EmailSettings> settings)
+        public EmailSender(IOptions<EmailSettings> settings)
         {
             _settings = settings.Value;
         }
@@ -38,6 +38,7 @@ namespace JoinIt.Web.Services
                 HtmlBody = htmlMessage
             }.ToMessageBody();
 
+            // Liga ao servidor SMTP usando as definições configuradas da aplicação
             using var cliente = new SmtpClient();
 
             await cliente.ConnectAsync(
@@ -45,6 +46,7 @@ namespace JoinIt.Web.Services
                 _settings.Port,
                 SecureSocketOptions.StartTls);
 
+            // Autentica com as credenciais SMTP armazenadas na configuração segura
             await cliente.AuthenticateAsync(
                 _settings.Username,
                 _settings.Password);

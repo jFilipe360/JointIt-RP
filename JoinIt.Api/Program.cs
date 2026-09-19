@@ -11,29 +11,33 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Connection string
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException(
         "Connection string 'DefaultConnection' not found.");
 
-// Entity Framework
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// Identity
+// Configura o Identity para utilizar ApplicationUser e o Entity Framework
 builder.Services
     .AddIdentityCore<ApplicationUser>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
-// Serviço que cria os JWT
+// Serviços da aplicação
 builder.Services.AddScoped<TokenService>();
 
 builder.Services.AddScoped<IEstadoEventoService, EstadoEventoService>();
 builder.Services.AddScoped<INotificacaoService, NotificacaoService>();
 
-// Configuração JWT
+// Configura a autenticação da API através de tokens JWT
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? throw new InvalidOperationException("Jwt:Key não está configurada.");
+
+if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
+{
+    throw new InvalidOperationException(
+        "Jwt:Key deve ter pelo menos 32 bytes.");
+}
 
 var jwtIssuer = builder.Configuration["Jwt:Issuer"]
     ?? throw new InvalidOperationException("Jwt:Issuer não está configurado.");
@@ -65,13 +69,10 @@ builder.Services
         };
     });
 
-// Autorização
 builder.Services.AddAuthorization();
 
-// Controllers
 builder.Services.AddControllersWithViews();
 
-// OpenAPI
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
@@ -79,6 +80,7 @@ builder.Services.AddOpenApi(options =>
 
 var app = builder.Build();
 
+// OpenAPI e Scalar ficam disponíveis apenas em desenvolvimento
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -87,7 +89,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Primeiro autentica, depois autoriza
+// A autenticação deve ocorrer antes da autorização
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -99,7 +101,7 @@ app.MapControllerRoute(
 
 app.Run();
 
-
+// Adiciona o esquema Bearer à documentação OpenAPI.
 internal sealed class BearerSecuritySchemeTransformer(
     Microsoft.AspNetCore.Authentication.IAuthenticationSchemeProvider authenticationSchemeProvider)
     : Microsoft.AspNetCore.OpenApi.IOpenApiDocumentTransformer

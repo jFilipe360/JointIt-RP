@@ -35,14 +35,11 @@
         <h1 class="section-title mb-2">
             O meu perfil
         </h1>
-
         <p class="text-muted mb-0">
             Consulta e gere os teus dados pessoais.
         </p>
     </div>
-
-    <a asp-page="./Edit"
-       class="btn btn-primary px-4">
+    <a asp-page="./Edit" class="btn btn-primary px-4">
         Editar perfil
     </a>
 </div>
@@ -50,36 +47,28 @@
 <div class="card perfil-main-card mb-5">
     <div class="card-body p-4 p-md-5">
         <div class="row align-items-center">
-
             <div class="col-md-auto text-center mb-4 mb-md-0">
-                <partial name="_UserAvatar"
-                         model="avatar" />
+                <partial name="_UserAvatar" model="avatar" />
             </div>
-
             <div class="col-md">
                 <h2 class="perfil-nome mb-3">
                     @Model.Utilizador.Nome
                 </h2>
-
                 <dl class="row mb-0 perfil-dados">
                     <dt class="col-sm-3">
                         Email
                     </dt>
-
                     <dd class="col-sm-9">
                         @Model.Utilizador.Email
                     </dd>
-
                     <dt class="col-sm-3">
                         Membro desde
                     </dt>
-
                     <dd class="col-sm-9">
                         @Model.Utilizador.CriadoEm.ToString("dd/MM/yyyy")
                     </dd>
                 </dl>
             </div>
-
         </div>
     </div>
 </div>
@@ -91,13 +80,10 @@
                 <h3 class="perfil-stat-number">
                     @Model.NumeroAmigos
                 </h3>
-
                 <p class="perfil-stat-label mb-4">
                     Amigos
                 </p>
-
-                <a asp-page="/Amigos/Index"
-                   class="btn btn-outline-primary mt-auto">
+                <a asp-page="/Amigos/Index" class="btn btn-outline-primary mt-auto">
                     Ver amizades
                 </a>
             </div>
@@ -110,13 +96,10 @@
                 <h3 class="perfil-stat-number">
                     @Model.NumeroEventosCriados
                 </h3>
-
                 <p class="perfil-stat-label mb-4">
                     Eventos criados
                 </p>
-
-                <a asp-page="/Eventos/MyEvents"
-                   class="btn btn-outline-primary mt-auto">
+                <a asp-page="/Eventos/MyEvents" class="btn btn-outline-primary mt-auto">
                     Ver eventos
                 </a>
             </div>
@@ -129,13 +112,10 @@
                 <h3 class="perfil-stat-number">
                     @Model.NumeroEventosParticipados
                 </h3>
-
                 <p class="perfil-stat-label mb-4">
                     Eventos participados
                 </p>
-
-                <a asp-page="/Eventos/MyEvents"
-                   class="btn btn-outline-primary mt-auto">
+                <a asp-page="/Eventos/MyEvents" class="btn btn-outline-primary mt-auto">
                     Ver participações
                 </a>
             </div>

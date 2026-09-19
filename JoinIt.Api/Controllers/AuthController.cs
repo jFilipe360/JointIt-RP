@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace JoinIt.Api.Controllers;
 
+// Gere o registo, autenticação e identificação dos utilizadores da API
 [ApiController]
 [Route("api/auth")]
 public class AuthController : ControllerBase
@@ -15,18 +16,17 @@ public class AuthController : ControllerBase
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly TokenService _tokenService;
 
-    public AuthController(
-        UserManager<ApplicationUser> userManager,
-        TokenService tokenService)
+    public AuthController(UserManager<ApplicationUser> userManager, TokenService tokenService)
     {
         _userManager = userManager;
         _tokenService = tokenService;
     }
 
+    // Cria uma conta através do ASP.NET Core Identity e devolve um token JWT
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterDto dto)
     {
-        var existente = await _userManager.FindByEmailAsync(dto.Email);
+        var existente = await _userManager.FindByEmailAsync(dto.Email.Trim());
 
         if (existente != null)
         {
@@ -39,10 +39,11 @@ public class AuthController : ControllerBase
         var user = new ApplicationUser
         {
             UserName = dto.Email,
-            Email = dto.Email,
-            Nome = dto.Nome
+            Email = dto.Email.Trim(),
+            Nome = dto.Nome.Trim()
         };
 
+        // O Identity valida e guarda a password de forma segura
         var resultado = await _userManager.CreateAsync(user, dto.Password);
 
         if (!resultado.Succeeded)
@@ -53,6 +54,7 @@ public class AuthController : ControllerBase
             });
         }
 
+        // Após o registo, autentica imediatamente o utilizador através de JWT
         var (token, expiraEm) = _tokenService.CriarToken(user);
 
         return Ok(new AuthResponseDto
@@ -65,13 +67,13 @@ public class AuthController : ControllerBase
         });
     }
 
+    // Valida as credenciais através do Identity e devolve um token JWT
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginDto dto)
     {
-        var user = await _userManager.FindByEmailAsync(dto.Email);
+        var user = await _userManager.FindByEmailAsync(dto.Email.Trim());
 
-        if (user == null ||
-            !await _userManager.CheckPasswordAsync(user, dto.Password))
+        if (user == null || !await _userManager.CheckPasswordAsync(user, dto.Password))
         {
             return Unauthorized(new
             {
@@ -91,6 +93,7 @@ public class AuthController : ControllerBase
         });
     }
 
+    // Devolve os dados do utilizador identificado pelo token JWT atual
     [Authorize]
     [HttpGet("me")]
     public async Task<IActionResult> Me()

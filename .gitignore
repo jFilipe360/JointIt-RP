@@ -365,3 +365,7 @@ FodyWeavers.xsd
 # Fotografias de perfil carregadas pelos utilizadores
 JoinIt.Web/wwwroot/uploads/perfis/*
 !JoinIt.Web/wwwroot/uploads/perfis/.gitkeep
+
+# Variáveis de ambiente locais
+.env
+.env.*

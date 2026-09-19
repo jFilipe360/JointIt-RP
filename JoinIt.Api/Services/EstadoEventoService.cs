@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JoinIt.Api.Services;
 
+// Calcula e atualiza o estado dos eventos com base nas respetivas datas
 public class EstadoEventoService : IEstadoEventoService
 {
     private readonly ApplicationDbContext _context;
@@ -13,10 +14,7 @@ public class EstadoEventoService : IEstadoEventoService
         _context = context;
     }
 
-    public EstadoEvento CalcularEstado(
-        DateTime dataInicio,
-        DateTime dataFim,
-        EstadoEvento estadoAtual)
+    public EstadoEvento CalcularEstado(DateTime dataInicio, DateTime dataFim, EstadoEvento estadoAtual)
     {
         // Um evento cancelado permanece sempre cancelado.
         if (estadoAtual == EstadoEvento.Cancelado)
@@ -39,6 +37,7 @@ public class EstadoEventoService : IEstadoEventoService
         return EstadoEvento.ParaBreve;
     }
 
+    // Atualiza apenas os eventos cujo estado calculado mudou
     public async Task AtualizarEstadosAsync()
     {
         var eventos = await _context.Eventos

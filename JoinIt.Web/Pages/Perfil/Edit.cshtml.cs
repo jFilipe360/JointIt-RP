@@ -10,6 +10,7 @@ namespace JoinIt.Web.Pages.Perfil
     [Authorize]
     public class EditModel : PageModel
     {
+        // Restrições aplicadas às fotografias carregadas pelo utilizador.
         private const long TamanhoMaximoFoto = 2 * 1024 * 1024;
 
         private static readonly HashSet<string> ExtensoesPermitidas =
@@ -21,12 +22,18 @@ namespace JoinIt.Web.Pages.Perfil
                 ".webp"
             };
 
+        private static readonly HashSet<string> TiposPermitidos =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                "image/jpeg",
+                "image/png",
+                "image/webp"
+            };
+
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IWebHostEnvironment _environment;
 
-        public EditModel(
-            UserManager<ApplicationUser> userManager,
-            IWebHostEnvironment environment)
+        public EditModel(UserManager<ApplicationUser> userManager, IWebHostEnvironment environment)
         {
             _userManager = userManager;
             _environment = environment;
@@ -40,9 +47,7 @@ namespace JoinIt.Web.Pages.Perfil
         public class PerfilInputModel
         {
             [Required(ErrorMessage = "O nome é obrigatório.")]
-            [StringLength(
-                100,
-                ErrorMessage = "O nome não pode ultrapassar 100 caracteres.")]
+            [StringLength(100, ErrorMessage = "O nome não pode ultrapassar 100 caracteres.")]
             [Display(Name = "Nome")]
             public string Nome { get; set; } = string.Empty;
 
@@ -71,6 +76,7 @@ namespace JoinIt.Web.Pages.Perfil
             return Page();
         }
 
+        // Valida os dados e atualiza o nome e a fotografia de perfil
         public async Task<IActionResult> OnPostAsync()
         {
             var utilizador = await _userManager.GetUserAsync(User);
@@ -86,9 +92,7 @@ namespace JoinIt.Web.Pages.Perfil
 
             if (string.IsNullOrWhiteSpace(nome))
             {
-                ModelState.AddModelError(
-                    "Input.Nome",
-                    "O nome é obrigatório.");
+                ModelState.AddModelError("Input.Nome", "O nome é obrigatório.");
             }
 
             if (Input.Foto is not null)
@@ -96,6 +100,7 @@ namespace JoinIt.Web.Pages.Perfil
                 ValidarFoto(Input.Foto);
             }
 
+            // Aceita apenas URLs absolutos HTTP ou HTTPS.
             if (!string.IsNullOrWhiteSpace(Input.FotoUrl))
             {
                 Input.FotoUrl = Input.FotoUrl.Trim();
@@ -105,13 +110,11 @@ namespace JoinIt.Web.Pages.Perfil
                         Input.FotoUrl,
                         UriKind.Absolute,
                         out var uri) &&
-                    (uri.Scheme == Uri.UriSchemeHttp ||
-                     uri.Scheme == Uri.UriSchemeHttps);
+                    (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
 
                 if (!urlValido)
                 {
-                    ModelState.AddModelError(
-                        "Input.FotoUrl",
+                    ModelState.AddModelError("Input.FotoUrl",
                         "Introduz um URL válido começado por http:// ou https://.");
                 }
             }
@@ -128,8 +131,7 @@ namespace JoinIt.Web.Pages.Perfil
             // Uma fotografia carregada tem prioridade sobre o URL.
             if (Input.Foto is not null)
             {
-                (novoCaminhoFoto, novoCaminhoFisico) =
-                    await GuardarFotoAsync(Input.Foto);
+                (novoCaminhoFoto, novoCaminhoFisico) = await GuardarFotoAsync(Input.Foto);
             }
             else if (!string.IsNullOrWhiteSpace(Input.FotoUrl))
             {
@@ -148,17 +150,14 @@ namespace JoinIt.Web.Pages.Perfil
             if (!resultado.Succeeded)
             {
                 // Remove a nova imagem caso a atualização falhe.
-                if (!string.IsNullOrWhiteSpace(novoCaminhoFisico) &&
-                    System.IO.File.Exists(novoCaminhoFisico))
+                if (!string.IsNullOrWhiteSpace(novoCaminhoFisico) && System.IO.File.Exists(novoCaminhoFisico))
                 {
                     System.IO.File.Delete(novoCaminhoFisico);
                 }
 
                 foreach (var erro in resultado.Errors)
                 {
-                    ModelState.AddModelError(
-                        string.Empty,
-                        erro.Description);
+                    ModelState.AddModelError(string.Empty, erro.Description);
                 }
 
                 FotoAtual = caminhoFotoAntiga;
@@ -166,33 +165,30 @@ namespace JoinIt.Web.Pages.Perfil
                 return Page();
             }
 
+            // Apaga a fotografia local anterior apenas depois da atualização ter sucesso
             if (caminhoFotoAntiga != novoCaminhoFoto)
             {
                 ApagarFoto(caminhoFotoAntiga);
             }
 
-            TempData["MensagemSucesso"] =
-                "O perfil foi atualizado com sucesso.";
+            TempData["MensagemSucesso"] = "O perfil foi atualizado com sucesso.";
 
             return RedirectToPage("./Index");
         }
 
+        // Valida o tamanho e a extensão da fotografia carregada
         private void ValidarFoto(IFormFile foto)
         {
             if (foto.Length == 0)
             {
-                ModelState.AddModelError(
-                    "Input.Foto",
-                    "O ficheiro selecionado está vazio.");
+                ModelState.AddModelError("Input.Foto", "O ficheiro selecionado está vazio.");
 
                 return;
             }
 
             if (foto.Length > TamanhoMaximoFoto)
             {
-                ModelState.AddModelError(
-                    "Input.Foto",
-                    "A fotografia não pode ultrapassar 2 MB.");
+                ModelState.AddModelError("Input.Foto", "A fotografia não pode ultrapassar 2 MB.");
             }
 
             string extensao = Path.GetExtension(foto.FileName);
@@ -200,19 +196,21 @@ namespace JoinIt.Web.Pages.Perfil
             if (string.IsNullOrWhiteSpace(extensao) ||
                 !ExtensoesPermitidas.Contains(extensao))
             {
+                ModelState.AddModelError("Input.Foto", "Seleciona uma imagem JPG, JPEG, PNG ou WEBP.");
+            }
+
+            if (!TiposPermitidos.Contains(foto.ContentType))
+            {
                 ModelState.AddModelError(
                     "Input.Foto",
-                    "Seleciona uma imagem JPG, JPEG, PNG ou WEBP.");
+                    "O ficheiro selecionado não é uma imagem válida.");
             }
         }
 
-        private async Task<(string CaminhoRelativo, string CaminhoFisico)>
-            GuardarFotoAsync(IFormFile foto)
+        // Guarda a fotografia com um nome único na pasta pública de perfis
+        private async Task<(string CaminhoRelativo, string CaminhoFisico)>GuardarFotoAsync(IFormFile foto)
         {
-            string pasta = Path.Combine(
-                _environment.WebRootPath,
-                "uploads",
-                "perfis");
+            string pasta = Path.Combine(_environment.WebRootPath, "uploads", "perfis");
 
             Directory.CreateDirectory(pasta);
 
@@ -220,17 +218,12 @@ namespace JoinIt.Web.Pages.Perfil
                 .GetExtension(foto.FileName)
                 .ToLowerInvariant();
 
-            string nomeFicheiro =
-                $"{Guid.NewGuid():N}{extensao}";
+            string nomeFicheiro = $"{Guid.NewGuid():N}{extensao}";
 
-            string caminhoFisico = Path.Combine(
-                pasta,
-                nomeFicheiro);
+            string caminhoFisico = Path.Combine(pasta, nomeFicheiro);
 
             await using var stream =
-                new FileStream(
-                    caminhoFisico,
-                    FileMode.CreateNew);
+                new FileStream(caminhoFisico, FileMode.CreateNew);
 
             await foto.CopyToAsync(stream);
 
@@ -240,6 +233,7 @@ namespace JoinIt.Web.Pages.Perfil
             return (caminhoRelativo, caminhoFisico);
         }
 
+        // Remove apenas fotografias locais geridas pela aplicação
         private void ApagarFoto(string? caminhoRelativo)
         {
             if (string.IsNullOrWhiteSpace(caminhoRelativo))

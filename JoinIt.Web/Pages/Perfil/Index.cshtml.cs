@@ -15,9 +15,7 @@ namespace JoinIt.Web.Pages.Perfil
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public IndexModel(
-            ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager)
+        public IndexModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _userManager = userManager;
@@ -31,6 +29,7 @@ namespace JoinIt.Web.Pages.Perfil
 
         public int NumeroEventosParticipados { get; private set; }
 
+        // Carrega os dados do perfil e os principais indicadores do utilizador
         public async Task<IActionResult> OnGetAsync()
         {
             string? utilizadorId = _userManager.GetUserId(User);
@@ -51,8 +50,8 @@ namespace JoinIt.Web.Pages.Perfil
 
             Utilizador = utilizador;
 
+            // Conta amizades aceites independentemente de quem enviou o pedido
             NumeroAmigos = await _context.Amizades
-                .AsNoTracking()
                 .CountAsync(a =>
                     a.Estado == EstadoPedido.Aceite &&
                     (
@@ -61,12 +60,11 @@ namespace JoinIt.Web.Pages.Perfil
                     ));
 
             NumeroEventosCriados = await _context.Eventos
-                .AsNoTracking()
                 .CountAsync(e =>
                     e.CriadorId == utilizadorId);
 
+            // Exclui os eventos criados pelo próprio utilizador
             NumeroEventosParticipados = await _context.Participantes
-                .AsNoTracking()
                 .CountAsync(p =>
                     p.UtilizadorId == utilizadorId &&
                     p.Estado == EstadoPedido.Aceite &&

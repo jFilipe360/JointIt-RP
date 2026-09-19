@@ -2,10 +2,12 @@
 
 namespace JoinIt.Api.Models
 {
+    // Representa uma notificação associada a um utilizador
     public class Notificacao
     {
         public int Id { get; set; }
 
+        // Utilizador destinatário da notificação
         [Required]
         public string UtilizadorId { get; set; } = string.Empty;
 

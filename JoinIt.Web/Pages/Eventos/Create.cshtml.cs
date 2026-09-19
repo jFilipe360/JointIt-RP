@@ -17,9 +17,7 @@ namespace JoinIt.Web.Pages.Eventos
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public CreateModel(
-            ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager)
+        public CreateModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _userManager = userManager;
@@ -28,83 +26,59 @@ namespace JoinIt.Web.Pages.Eventos
         [BindProperty]
         public EventoInputModel Input { get; set; } = new();
 
-        public IList<SelectListItem> Categorias { get; set; }
-            = new List<SelectListItem>();
+        public IList<SelectListItem> Categorias { get; set; } = new List<SelectListItem>();
 
         public class EventoInputModel
         {
             [Required(ErrorMessage = "O título é obrigatório.")]
-            [StringLength(
-                100,
-                ErrorMessage = "O título não pode ultrapassar 100 caracteres.")]
+            [StringLength(100, ErrorMessage = "O título não pode ultrapassar 100 caracteres.")]
             [Display(Name = "Título")]
             public string Titulo { get; set; } = string.Empty;
 
             [Required(ErrorMessage = "A descrição é obrigatória.")]
-            [StringLength(
-                1000,
-                ErrorMessage = "A descrição não pode ultrapassar 1000 caracteres.")]
+            [StringLength(1000, ErrorMessage = "A descrição não pode ultrapassar 1000 caracteres.")]
             [Display(Name = "Descrição")]
             public string Descricao { get; set; } = string.Empty;
 
             [Required(ErrorMessage = "A data e hora de início são obrigatórias.")]
             [Display(Name = "Data e hora de início")]
-            public DateTime DataHora { get; set; }
-                = DateTime.Now.AddDays(1);
+            public DateTime DataHora { get; set; } = DateTime.Now.AddDays(1);
 
             [Required(ErrorMessage = "A data e hora de fim são obrigatórias.")]
             [Display(Name = "Data e hora de fim")]
-            public DateTime DataFim { get; set; }
-                = DateTime.Now.AddDays(1).AddHours(2);
+            public DateTime DataFim { get; set; } = DateTime.Now.AddDays(1).AddHours(2);
 
             [Display(Name = "Evento online")]
             public bool IsOnline { get; set; }
 
-            [StringLength(
-                500,
-                ErrorMessage = "O link não pode ultrapassar 500 caracteres.")]
+            [StringLength(500, ErrorMessage = "O link não pode ultrapassar 500 caracteres.")]
             [Display(Name = "Link do evento online")]
             public string? LinkOnline { get; set; }
 
-            [StringLength(
-                150,
-                ErrorMessage = "O local não pode ultrapassar 150 caracteres.")]
+            [StringLength(150, ErrorMessage = "O local não pode ultrapassar 150 caracteres.")]
             [Display(Name = "Local")]
             public string? Local { get; set; }
 
-            [StringLength(
-                250,
-                ErrorMessage = "A morada não pode ultrapassar 250 caracteres.")]
+            [StringLength(250, ErrorMessage = "A morada não pode ultrapassar 250 caracteres.")]
             [Display(Name = "Morada")]
             public string? Morada { get; set; }
 
-            [Range(
-                2,
-                1000,
-                ErrorMessage = "A lotação deve estar entre 2 e 1000.")]
+            [Range(2, 1000, ErrorMessage = "A lotação deve estar entre 2 e 1000.")]
             [Display(Name = "Número máximo de participantes")]
             public int NumMaxParticipantes { get; set; } = 10;
 
             [Display(Name = "Evento privado")]
             public bool IsPrivado { get; set; }
 
-            [Range(
-                -90,
-                90,
-                ErrorMessage = "A latitude deve estar entre -90 e 90.")]
+            [Range(-90, 90, ErrorMessage = "A latitude deve estar entre -90 e 90.")]
             [Display(Name = "Latitude")]
             public double? Latitude { get; set; }
 
-            [Range(
-                -180,
-                180,
-                ErrorMessage = "A longitude deve estar entre -180 e 180.")]
+            [Range(-180, 180, ErrorMessage = "A longitude deve estar entre -180 e 180.")]
             [Display(Name = "Longitude")]
             public double? Longitude { get; set; }
 
-            [MinLength(
-                1,
-                ErrorMessage = "Seleciona pelo menos uma categoria.")]
+            [MinLength(1,  ErrorMessage = "Seleciona pelo menos uma categoria.")]
             [Display(Name = "Categorias")]
             public List<int> CategoriasSelecionadas { get; set; } = new();
         }
@@ -114,25 +88,22 @@ namespace JoinIt.Web.Pages.Eventos
             await CarregarCategoriasAsync();
         }
 
+        //Valida os dados do formulário e cria um novo evento no banco de dados.
         public async Task<IActionResult> OnPostAsync()
         {
             ValidarDatas();
             ValidarTipoEvento();
 
-            List<int> categoriasSelecionadas = Input
-                .CategoriasSelecionadas
-                .Distinct()
-                .ToList();
+            //Remove categorias duplicadas e confirma que os IDs recebidos existem na base de dados
+            List<int> categoriasSelecionadas = Input.CategoriasSelecionadas.Distinct().ToList();
 
-            List<int> categoriasValidas = await _context.Categorias
-                .Where(c => categoriasSelecionadas.Contains(c.Id))
+            List<int> categoriasValidas = await _context.Categorias.Where(c => categoriasSelecionadas.Contains(c.Id))
                 .Select(c => c.Id)
                 .ToListAsync();
 
             if (categoriasValidas.Count != categoriasSelecionadas.Count)
             {
-                ModelState.AddModelError(
-                    "Input.CategoriasSelecionadas",
+                ModelState.AddModelError("Input.CategoriasSelecionadas",
                     "Uma das categorias selecionadas não é válida.");
             }
 
@@ -150,6 +121,7 @@ namespace JoinIt.Web.Pages.Eventos
                 return Challenge();
             }
 
+            //Converte os dados validados numa entidade Evento
             var evento = new Evento
             {
                 Titulo = Input.Titulo.Trim(),
@@ -179,6 +151,7 @@ namespace JoinIt.Web.Pages.Eventos
                 CriadorId = utilizadorId
             };
 
+            //Cria as relações entre o evento e as categorias selecionadas
             foreach (int categoriaId in categoriasValidas)
             {
                 evento.EventosCategorias.Add(new EventoCategoria
@@ -198,8 +171,7 @@ namespace JoinIt.Web.Pages.Eventos
             _context.Eventos.Add(evento);
             await _context.SaveChangesAsync();
 
-            TempData["MensagemSucesso"] =
-                "O evento foi criado com sucesso.";
+            TempData["MensagemSucesso"] = "O evento foi criado com sucesso.";
 
             return RedirectToPage("./Details", new
             {
@@ -207,32 +179,28 @@ namespace JoinIt.Web.Pages.Eventos
             });
         }
 
+        //Garante que o evento começa no futuro e termina depois de começar
         private void ValidarDatas()
         {
             if (Input.DataHora <= DateTime.Now)
             {
-                ModelState.AddModelError(
-                    "Input.DataHora",
-                    "A data de início deve ser futura.");
+                ModelState.AddModelError("Input.DataHora", "A data de início deve ser futura.");
             }
 
             if (Input.DataFim <= Input.DataHora)
             {
-                ModelState.AddModelError(
-                    "Input.DataFim",
-                    "A data de fim deve ser posterior à data de início.");
+                ModelState.AddModelError("Input.DataFim", "A data de fim deve ser posterior à data de início.");
             }
         }
 
+        //Aplica as regras de validação específicas para eventos online e presenciais
         private void ValidarTipoEvento()
         {
             if (Input.IsOnline)
             {
                 if (string.IsNullOrWhiteSpace(Input.LinkOnline))
                 {
-                    ModelState.AddModelError(
-                        "Input.LinkOnline",
-                        "O link é obrigatório para eventos online.");
+                    ModelState.AddModelError("Input.LinkOnline", "O link é obrigatório para eventos online.");
 
                     return;
                 }
@@ -241,12 +209,9 @@ namespace JoinIt.Web.Pages.Eventos
                         Input.LinkOnline.Trim(),
                         UriKind.Absolute,
                         out Uri? uri) ||
-                    (uri.Scheme != Uri.UriSchemeHttp &&
-                     uri.Scheme != Uri.UriSchemeHttps))
+                    (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
                 {
-                    ModelState.AddModelError(
-                        "Input.LinkOnline",
-                        "Introduz um link válido.");
+                    ModelState.AddModelError("Input.LinkOnline", "Introduz um link válido.");
                 }
 
                 return;
@@ -254,14 +219,13 @@ namespace JoinIt.Web.Pages.Eventos
 
             if (string.IsNullOrWhiteSpace(Input.Local))
             {
-                ModelState.AddModelError(
-                    "Input.Local",
-                    "O local é obrigatório para eventos presenciais.");
+                ModelState.AddModelError("Input.Local", "O local é obrigatório para eventos presenciais.");
             }
 
             ValidarCoordenadas();
         }
 
+        //Latitude e longitude devem ser fornecidas em conjunto para eventos presenciais
         private void ValidarCoordenadas()
         {
             bool temLatitude = Input.Latitude.HasValue;
@@ -269,13 +233,9 @@ namespace JoinIt.Web.Pages.Eventos
 
             if (temLatitude != temLongitude)
             {
-                ModelState.AddModelError(
-                    "Input.Latitude",
-                    "Seleciona uma localização completa no mapa.");
+                ModelState.AddModelError("Input.Latitude", "Seleciona uma localização completa no mapa.");
 
-                ModelState.AddModelError(
-                    "Input.Longitude",
-                    "Seleciona uma localização completa no mapa.");
+                ModelState.AddModelError("Input.Longitude", "Seleciona uma localização completa no mapa.");
             }
         }
 

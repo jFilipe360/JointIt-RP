@@ -7,14 +7,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JoinIt.Web.ViewComponents
 {
+    // Carrega o número de notificações não lidas e as notificações recentes do dropdown
     public class NotificacaoCountViewComponent : ViewComponent
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public NotificacaoCountViewComponent(
-            ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager)
+        public NotificacaoCountViewComponent(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _userManager = userManager;
@@ -22,21 +21,20 @@ namespace JoinIt.Web.ViewComponents
 
         public async Task<IViewComponentResult> InvokeAsync()
         {
-            string? utilizadorId =
-                _userManager.GetUserId(HttpContext.User);
+            string? utilizadorId = _userManager.GetUserId(HttpContext.User);
 
             if (string.IsNullOrEmpty(utilizadorId))
             {
-                return View(
-                    new NotificacoesDropdownViewModel());
+                return View(new NotificacoesDropdownViewModel());
             }
 
+            // Calcula o total de notificações não lidas do utilizador
             int numeroNaoLidas = await _context.Notificacoes
-                .AsNoTracking()
                 .CountAsync(n =>
                     n.UtilizadorId == utilizadorId &&
                     !n.Lida);
 
+            // Carrega apenas as cinco notificações mais recentes para o dropdown
             var notificacoes = await _context.Notificacoes
                 .AsNoTracking()
                 .Where(n =>
@@ -52,8 +50,6 @@ namespace JoinIt.Web.ViewComponents
             };
 
             return View(model);
-
-            return View(numeroNaoLidas);
         }
     }
 }

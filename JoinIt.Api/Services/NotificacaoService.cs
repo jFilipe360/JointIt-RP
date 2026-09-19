@@ -3,6 +3,7 @@ using JoinIt.Api.Models;
 
 namespace JoinIt.Api.Services;
 
+// Cria e guarda notificações destinadas aos utilizadores
 public class NotificacaoService : INotificacaoService
 {
     private readonly ApplicationDbContext _context;
@@ -12,6 +13,7 @@ public class NotificacaoService : INotificacaoService
         _context = context;
     }
 
+    // Valida e normaliza os dados antes de guardar a notificação
     public async Task CriarAsync(
         string utilizadorId,
         string titulo,
@@ -39,14 +41,39 @@ public class NotificacaoService : INotificacaoService
                 nameof(mensagem));
         }
 
+        titulo = titulo.Trim();
+        mensagem = mensagem.Trim();
+        link = string.IsNullOrWhiteSpace(link)
+            ? null
+            : link.Trim();
+
+        if (titulo.Length > 100)
+        {
+            throw new ArgumentException(
+                "O título não pode ultrapassar 100 caracteres.",
+                nameof(titulo));
+        }
+
+        if (mensagem.Length > 500)
+        {
+            throw new ArgumentException(
+                "A mensagem não pode ultrapassar 500 caracteres.",
+                nameof(mensagem));
+        }
+
+        if (link?.Length > 500)
+        {
+            throw new ArgumentException(
+                "O link não pode ultrapassar 500 caracteres.",
+                nameof(link));
+        }
+
         var notificacao = new Notificacao
         {
             UtilizadorId = utilizadorId,
-            Titulo = titulo.Trim(),
-            Mensagem = mensagem.Trim(),
-            Link = string.IsNullOrWhiteSpace(link)
-                ? null
-                : link.Trim(),
+            Titulo = titulo,
+            Mensagem = mensagem,
+            Link = link,
             Lida = false,
             CriadoEm = DateTime.Now
         };

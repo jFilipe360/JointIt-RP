@@ -10,6 +10,7 @@ using System.Security.Claims;
 
 namespace JoinIt.Api.Controllers;
 
+// Disponibiliza operações autenticadas de gestão de amizades e pedidos
 [ApiController]
 [Authorize]
 [Route("api/amigos")]
@@ -18,19 +19,17 @@ public class AmigosController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly INotificacaoService _notificacaoService;
 
-    public AmigosController(
-        ApplicationDbContext context,
-        INotificacaoService notificacaoService)
+    public AmigosController(ApplicationDbContext context, INotificacaoService notificacaoService)
     {
         _context = context;
         _notificacaoService = notificacaoService;
     }
 
+    // Envia um pedido de amizade ou reutiliza um pedido anteriormente rejeitado
     [HttpPost("pedidos/{recetorId}")]
     public async Task<IActionResult> EnviarPedido(string recetorId)
     {
-        var utilizadorId =
-            User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (utilizadorId == null)
         {
@@ -65,6 +64,7 @@ public class AmigosController : ControllerBase
             });
         }
 
+        // Procura relações existentes independentemente de quem enviou o pedido
         var amizadesExistentes = await _context.Amizades
             .Where(a =>
                 (a.EmissorId == utilizadorId &&
@@ -73,17 +73,15 @@ public class AmigosController : ControllerBase
                  a.RecetorId == utilizadorId))
             .ToListAsync();
 
-        var amizadeAceite = amizadesExistentes
-            .FirstOrDefault(a => a.Estado == EstadoPedido.Aceite);
+        var amizadeAceite = amizadesExistentes.FirstOrDefault(a => a.Estado == EstadoPedido.Aceite);
 
-        var amizadePendente = amizadesExistentes
-            .FirstOrDefault(a => a.Estado == EstadoPedido.Pendente);
+        var amizadePendente = amizadesExistentes.FirstOrDefault(a => a.Estado == EstadoPedido.Pendente);
 
-        var amizadeRejeitada = amizadesExistentes
-            .FirstOrDefault(a => a.Estado == EstadoPedido.Rejeitado);
+        var amizadeRejeitada = amizadesExistentes.FirstOrDefault(a => a.Estado == EstadoPedido.Rejeitado);
 
         string message;
 
+        // Um pedido rejeitado pode ser reutilizado como novo pedido
         if (amizadeAceite != null)
         {
             return BadRequest(new
@@ -134,7 +132,7 @@ public class AmigosController : ControllerBase
             recetorId,
             "Novo pedido de amizade",
             $"{nomeUtilizador} enviou-te um pedido de amizade.",
-            "/Friends");
+            "/Amigos");
 
         return Ok(new
         {
@@ -142,6 +140,7 @@ public class AmigosController : ControllerBase
         });
     }
 
+    // Devolve amigos, pedidos recebidos e pedidos enviados pelo utilizador
     [HttpGet]
     public async Task<IActionResult> GetAmigos()
     {
@@ -187,6 +186,7 @@ public class AmigosController : ControllerBase
             })
             .ToListAsync();
 
+        // Carrega amizades aceites independentemente de quem enviou o pedido
         var amigos = await _context.Amizades
             .AsNoTracking()
             .Where(a =>
@@ -217,11 +217,11 @@ public class AmigosController : ControllerBase
         });
     }
 
+    // Aceita apenas pedidos pendentes dirigidos ao utilizador autenticado
     [HttpPost("pedidos/{id:int}/aceitar")]
     public async Task<IActionResult> AceitarPedido(int id)
     {
-        var utilizadorId =
-            User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (utilizadorId == null)
         {
@@ -264,11 +264,11 @@ public class AmigosController : ControllerBase
         });
     }
 
+    // Rejeita apenas pedidos pendentes dirigidos ao utilizador autenticado
     [HttpPost("pedidos/{id:int}/rejeitar")]
     public async Task<IActionResult> RejeitarPedido(int id)
     {
-        var utilizadorId =
-            User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (utilizadorId == null)
         {
@@ -311,11 +311,11 @@ public class AmigosController : ControllerBase
         });
     }
 
+    // Cancela apenas pedidos pendentes enviados pelo utilizador atual
     [HttpDelete("pedidos/{id:int}")]
     public async Task<IActionResult> CancelarPedido(int id)
     {
-        var utilizadorId =
-            User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (utilizadorId == null)
         {
@@ -346,11 +346,11 @@ public class AmigosController : ControllerBase
         });
     }
 
+    // Remove uma amizade aceite em que o utilizador atual participa
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> RemoverAmizade(int id)
     {
-        var utilizadorId =
-            User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (utilizadorId == null)
         {

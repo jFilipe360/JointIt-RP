@@ -13,20 +13,19 @@ namespace JoinIt.Web.Pages
         private readonly ApplicationDbContext _context;
         private readonly IEstadoEventoService _estadoEventoService;
 
-        public IndexModel(
-            ApplicationDbContext context,
-            IEstadoEventoService estadoEventoService)
+        public IndexModel(ApplicationDbContext context, IEstadoEventoService estadoEventoService)
         {
             _context = context;
             _estadoEventoService = estadoEventoService;
         }
         public IList<Evento> ProximosEventos { get; private set; } = new List<Evento>();
 
-
+        // Atualiza os estados e carrega os próximos eventos públicos
         public async Task OnGetAsync()
         {
             await _estadoEventoService.AtualizarEstadosAsync();
 
+            // Mostra até seis eventos públicos futuros, ordenados pela data de início
             ProximosEventos = await _context.Eventos
                 .AsNoTracking()
                 .Where(e =>

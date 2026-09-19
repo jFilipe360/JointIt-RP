@@ -10,6 +10,7 @@ using System.Security.Claims;
 
 namespace JoinIt.Api.Controllers;
 
+// Disponibiliza operações autenticadas sobre os convites recebidos pelo utilizador
 [ApiController]
 [Authorize]
 [Route("api/convites")]
@@ -19,9 +20,7 @@ public class ConvitesController : ControllerBase
     private readonly IEstadoEventoService _estadoEventoService;
     private readonly INotificacaoService _notificacaoService;
 
-    public ConvitesController(
-        ApplicationDbContext context,
-        IEstadoEventoService estadoEventoService,
+    public ConvitesController(ApplicationDbContext context, IEstadoEventoService estadoEventoService,
         INotificacaoService notificacaoService)
     {
         _context = context;
@@ -29,11 +28,11 @@ public class ConvitesController : ControllerBase
         _notificacaoService = notificacaoService;
     }
 
+    // Devolve os convites recebidos pelo utilizador autenticado
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ConviteDto>>> GetConvites()
     {
-        var utilizadorId =
-            User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (utilizadorId == null)
         {
@@ -63,11 +62,11 @@ public class ConvitesController : ControllerBase
         return Ok(convites);
     }
 
+    // Valida o convite e o evento antes de registar a participação.
     [HttpPost("{id:int}/aceitar")]
     public async Task<IActionResult> AceitarConvite(int id)
     {
-        var utilizadorId =
-            User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (utilizadorId == null)
         {
@@ -107,6 +106,7 @@ public class ConvitesController : ControllerBase
             });
         }
 
+        // Recalcula o estado para impedir a entrada em eventos já iniciados ou terminados
         var estadoAtual = _estadoEventoService.CalcularEstado(
             evento.DataHora,
             evento.DataFim,
@@ -134,8 +134,7 @@ public class ConvitesController : ControllerBase
             });
         }
 
-        if (estadoAtual == EstadoEvento.ADecorrer ||
-            evento.DataHora <= DateTime.Now)
+        if (estadoAtual == EstadoEvento.ADecorrer)
         {
             return BadRequest(new
             {
@@ -143,18 +142,17 @@ public class ConvitesController : ControllerBase
             });
         }
 
+        // Verifica se já existe uma participação deste utilizador no evento
         var participacao = evento.Participantes
             .FirstOrDefault(p =>
                 p.UtilizadorId == utilizadorId);
 
-        var jaParticipa =
-            participacao?.Estado == EstadoPedido.Aceite;
+        var jaParticipa = participacao?.Estado == EstadoPedido.Aceite;
 
-        var numeroParticipantes = evento.Participantes
-            .Count(p => p.Estado == EstadoPedido.Aceite);
+        // Apenas participantes aceites contam para a lotação do evento
+        var numeroParticipantes = evento.Participantes.Count(p => p.Estado == EstadoPedido.Aceite);
 
-        if (!jaParticipa &&
-            numeroParticipantes >= evento.NumMaxParticipantes)
+        if (!jaParticipa && numeroParticipantes >= evento.NumMaxParticipantes)
         {
             return BadRequest(new
             {
@@ -162,6 +160,7 @@ public class ConvitesController : ControllerBase
             });
         }
 
+        // Reutiliza uma participação existente para evitar registos duplicados
         if (participacao == null)
         {
             evento.Participantes.Add(new Participante
@@ -177,6 +176,7 @@ public class ConvitesController : ControllerBase
             participacao.DataPedido = DateTime.Now;
         }
 
+        // Regista a resposta ao convite depois de validar a participação
         convite.Estado = EstadoPedido.Aceite;
         convite.RespondidoEm = DateTime.Now;
 
@@ -200,6 +200,7 @@ public class ConvitesController : ControllerBase
         });
     }
 
+    // Rejeita um convite pendente e notifica o utilizador que o enviou
     [HttpPost("{id:int}/rejeitar")]
     public async Task<IActionResult> RejeitarConvite(int id)
     {

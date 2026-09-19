@@ -13,17 +13,15 @@ namespace JoinIt.Web.Pages.Users
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public IndexModel(
-            ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager)
+        public IndexModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _userManager = userManager;
         }
 
-        public IList<ApplicationUser> Utilizadores { get; set; }
-            = new List<ApplicationUser>();
+        public IList<ApplicationUser> Utilizadores { get; set; } = new List<ApplicationUser>();
 
+        // Carrega os restantes utilizadores ordenados alfabeticamente
         public async Task OnGetAsync()
         {
             string? utilizadorAtualId =

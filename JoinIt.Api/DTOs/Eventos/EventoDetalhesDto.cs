@@ -3,6 +3,7 @@ using JoinIt.Api.Enums;
 
 namespace JoinIt.Api.DTOs.Eventos;
 
+// Dados detalhados de um evento devolvidos pela API
 public class EventoDetalhesDto
 {
     public int Id { get; set; }

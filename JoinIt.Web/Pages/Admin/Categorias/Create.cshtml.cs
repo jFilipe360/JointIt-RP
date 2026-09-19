@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JoinIt.Web.Pages.Admin.Categorias
 {
+    //Permite ao admin criar uma nova categoria
     [Authorize(Roles = "Admin")]
     public class CreateModel : PageModel
     {
@@ -26,6 +27,7 @@ namespace JoinIt.Web.Pages.Admin.Categorias
 
         public async Task<IActionResult> OnPostAsync()
         {
+            //Remove espaços em branco desnecessários antes da validação e gravação
             Categoria.Nome = Categoria.Nome.Trim();
 
             if (!ModelState.IsValid)
@@ -33,25 +35,21 @@ namespace JoinIt.Web.Pages.Admin.Categorias
                 return Page();
             }
 
-            bool existe = await _context
-                .Set<Categoria>()
-                .AnyAsync(c => c.Nome == Categoria.Nome);
+            //Impede a criação de categorias com nomes duplicados
+            bool existe = await _context.Categorias.AnyAsync(c => c.Nome == Categoria.Nome);
 
             if (existe)
             {
-                ModelState.AddModelError(
-                    "Categoria.Nome",
-                    "Já existe uma categoria com este nome.");
-
+                ModelState.AddModelError("Categoria.Nome","Já existe uma categoria com este nome.");
                 return Page();
             }
 
-            _context.Set<Categoria>().Add(Categoria);
+            //Guarda a nova categoria na base de dados
+            _context.Categorias.Add(Categoria);
 
             await _context.SaveChangesAsync();
 
-            TempData["MensagemSucesso"] =
-                "Categoria criada com sucesso.";
+            TempData["MensagemSucesso"] = "Categoria criada com sucesso.";
 
             return RedirectToPage("./Index");
         }

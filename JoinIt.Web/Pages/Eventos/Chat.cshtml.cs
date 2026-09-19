@@ -17,9 +17,7 @@ namespace JoinIt.Web.Pages.Eventos
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEstadoEventoService _estadoEventoService;
 
-        public ChatModel(
-            ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager,
+        public ChatModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager,
             IEstadoEventoService estadoEventoService)
         {
             _context = context;
@@ -29,14 +27,13 @@ namespace JoinIt.Web.Pages.Eventos
 
         public Evento Evento { get; private set; } = null!;
 
-        public IList<MensagemEvento> Mensagens { get; private set; }
-            = new List<MensagemEvento>();
+        public IList<MensagemEvento> Mensagens { get; private set; } = new List<MensagemEvento>();
 
-        public string UtilizadorAtualId { get; private set; }
-            = string.Empty;
+        public string UtilizadorAtualId { get; private set; } = string.Empty;
 
         public bool PodeEnviar { get; private set; }
 
+        //Valida o acesso ao chat e carrega as mensagens do evento
         public async Task<IActionResult> OnGetAsync(int id)
         {
             string? utilizadorId = _userManager.GetUserId(User);
@@ -58,6 +55,7 @@ namespace JoinIt.Web.Pages.Eventos
                 return NotFound();
             }
 
+            //Apenas o criador do evento ou um participante aceite pode aceder ao chat
             bool participaNoEvento = await _context.Participantes
                 .AsNoTracking()
                 .AnyAsync(p =>
@@ -65,9 +63,7 @@ namespace JoinIt.Web.Pages.Eventos
                     p.UtilizadorId == utilizadorId &&
                     p.Estado == EstadoPedido.Aceite);
 
-            bool podeAceder =
-                evento.CriadorId == utilizadorId ||
-                participaNoEvento;
+            bool podeAceder = evento.CriadorId == utilizadorId || participaNoEvento;
 
             if (!podeAceder)
             {
@@ -77,14 +73,10 @@ namespace JoinIt.Web.Pages.Eventos
             Evento = evento;
             UtilizadorAtualId = utilizadorId;
 
-            PodeEnviar =
-                evento.Estado == EstadoEvento.ParaBreve ||
-                evento.Estado == EstadoEvento.ADecorrer;
+            //O histórico pode ser consultado, mas só eventos ativos permiteem enviar mensagens
+            PodeEnviar = evento.Estado == EstadoEvento.ParaBreve || evento.Estado == EstadoEvento.ADecorrer;
 
-            /*
-             * Carrega primeiro as 50 mensagens mais recentes
-             * e depois apresenta-as por ordem cronológica.
-             */
+            //Carrega as 50 mensagens mais recentes do evento, ordenadas por data de envio
             var mensagensRecentes = await _context.MensagensEvento
                 .AsNoTracking()
                 .Where(m => m.EventoId == id)
@@ -93,9 +85,7 @@ namespace JoinIt.Web.Pages.Eventos
                 .Take(50)
                 .ToListAsync();
 
-            Mensagens = mensagensRecentes
-                .OrderBy(m => m.EnviadaEm)
-                .ToList();
+            Mensagens = mensagensRecentes.OrderBy(m => m.EnviadaEm).ToList();
 
             return Page();
         }

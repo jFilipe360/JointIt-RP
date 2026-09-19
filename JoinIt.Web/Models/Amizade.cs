@@ -7,20 +7,22 @@ namespace JoinIt.Web.Models
     {
         public int Id { get; set; }
 
+        //Utilizador que enviou o pedido de amizade.
         [Required]
         public string EmissorId { get; set; } = string.Empty;
 
         public ApplicationUser Emissor { get; set; } = null!;
 
+        //Utilizador que recebeu o pedido de amizade.
         [Required]
         public string RecetorId { get; set; } = string.Empty;
 
         public ApplicationUser Recetor { get; set; } = null!;
 
-        public EstadoPedido Estado { get; set; }
-            = EstadoPedido.Pendente;
+        //Estado do pedido de amizade (Pendente, Aceite, Recusado).
+        public EstadoPedido Estado { get; set; } = EstadoPedido.Pendente;
 
-        public DateTime CriadoEm { get; set; }
-            = DateTime.Now;
+        //Data em que o pedido de amizade foi criado.
+        public DateTime CriadoEm { get; set; } = DateTime.Now;
     }
 }

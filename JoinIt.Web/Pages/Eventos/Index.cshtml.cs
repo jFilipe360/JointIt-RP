@@ -14,19 +14,15 @@ namespace JoinIt.Web.Pages.Eventos
         private readonly ApplicationDbContext _context;
         private readonly IEstadoEventoService _estadoEventoService;
 
-        public IndexModel(
-            ApplicationDbContext context,
-            IEstadoEventoService estadoEventoService)
+        public IndexModel(ApplicationDbContext context, IEstadoEventoService estadoEventoService)
         {
             _context = context;
             _estadoEventoService = estadoEventoService;
         }
 
-        public IList<Evento> Eventos { get; private set; }
-            = new List<Evento>();
+        public IList<Evento> Eventos { get; private set; } = new List<Evento>();
 
-        public IList<SelectListItem> Categorias { get; private set; }
-            = new List<SelectListItem>();
+        public IList<SelectListItem> Categorias { get; private set; } = new List<SelectListItem>();
 
         public string? ErroFiltros { get; private set; }
 
@@ -54,6 +50,7 @@ namespace JoinIt.Web.Pages.Eventos
         [BindProperty(SupportsGet = true)]
         public string Ordenacao { get; set; } = "data-asc";
 
+        //Atualiza os estados e aplica os filtros da listagem de eventos
         public async Task OnGetAsync()
         {
             await _estadoEventoService.AtualizarEstadosAsync();
@@ -61,6 +58,7 @@ namespace JoinIt.Web.Pages.Eventos
 
             DateTime agora = DateTime.Now;
 
+            //Carrega apenas eventos públicos e os dados necessários para filtros e apresentação
             var query = _context.Eventos
                 .AsNoTracking()
                 .AsSplitQuery()
@@ -68,52 +66,42 @@ namespace JoinIt.Web.Pages.Eventos
                 .Include(e => e.EventosCategorias)
                     .ThenInclude(ec => ec.Categoria)
                 .Include(e => e.Participantes)
-                .Where(e => !e.IsPrivado)
-                .AsQueryable();
+                .Where(e => !e.IsPrivado);
 
             if (!string.IsNullOrWhiteSpace(Pesquisa))
             {
                 string pesquisa = Pesquisa.Trim();
 
+                //Pesquisa por título, descrição, localização ou categoria
                 query = query.Where(e =>
                     e.Titulo.Contains(pesquisa) ||
                     e.Descricao.Contains(pesquisa) ||
                     (
-                        e.Local != null &&
-                        e.Local.Contains(pesquisa)
+                        e.Local != null && e.Local.Contains(pesquisa)
                     ) ||
                     (
-                        e.Morada != null &&
-                        e.Morada.Contains(pesquisa)
+                        e.Morada != null && e.Morada.Contains(pesquisa)
                     ) ||
-                    e.EventosCategorias.Any(ec =>
-                        ec.Categoria.Nome.Contains(pesquisa)
+                    e.EventosCategorias.Any(ec =>ec.Categoria.Nome.Contains(pesquisa)
                     ));
             }
 
             if (CategoriaId.HasValue)
             {
-                query = query.Where(e =>
-                    e.EventosCategorias.Any(ec =>
-                        ec.CategoriaId == CategoriaId.Value));
+                query = query.Where(e => e.EventosCategorias.Any(ec => ec.CategoriaId == CategoriaId.Value));
             }
 
-            /*
-             * Quando é escolhido um estado específico,
-             * esse filtro tem prioridade sobre ApenasFuturos.
-             */
+            //O filtro por estado tem prioridade sobre "Apenas futuros"
             if (Estado.HasValue)
             {
-                query = query.Where(e =>
-                    e.Estado == Estado.Value);
+                query = query.Where(e => e.Estado == Estado.Value);
             }
             else if (ApenasFuturos)
             {
-                query = query.Where(e =>
-                    e.DataHora > agora &&
-                    e.Estado != EstadoEvento.Cancelado);
+                query = query.Where(e => e.DataHora > agora && e.Estado != EstadoEvento.Cancelado);
             }
 
+            //Valida o intervalo antes de aplicar os filtros de data
             bool intervaloValido =
                 !DataDe.HasValue ||
                 !DataAte.HasValue ||
@@ -130,20 +118,19 @@ namespace JoinIt.Web.Pages.Eventos
                 {
                     DateTime inicio = DataDe.Value.Date;
 
-                    query = query.Where(e =>
-                        e.DataHora >= inicio);
+                    query = query.Where(e => e.DataHora >= inicio);
                 }
 
                 if (DataAte.HasValue)
                 {
-                    DateTime fimExclusivo =
-                        DataAte.Value.Date.AddDays(1);
+                    //Usa o dia seguinte como limite exclusivo para incluir toda a data final
+                    DateTime fimExclusivo = DataAte.Value.Date.AddDays(1);
 
-                    query = query.Where(e =>
-                        e.DataHora < fimExclusivo);
+                    query = query.Where(e => e.DataHora < fimExclusivo);
                 }
             }
 
+            //Mostra apenas eventos cuja lotação ainda não foi atingida
             if (ComLugares)
             {
                 query = query.Where(e =>
@@ -152,22 +139,19 @@ namespace JoinIt.Web.Pages.Eventos
                     ) < e.NumMaxParticipantes);
             }
 
+            //Aplica a ordenação selecionada pelo utilizador
             query = Ordenacao switch
             {
-                "data-desc" => query
-                    .OrderByDescending(e => e.DataHora),
+                "data-desc" => query.OrderByDescending(e => e.DataHora),
 
-                "nome" => query
-                    .OrderBy(e => e.Titulo),
+                "nome" => query.OrderBy(e => e.Titulo),
 
                 "participantes-desc" => query
                     .OrderByDescending(e =>
-                        e.Participantes.Count(p =>
-                            p.Estado == EstadoPedido.Aceite))
+                        e.Participantes.Count(p => p.Estado == EstadoPedido.Aceite))
                     .ThenBy(e => e.DataHora),
 
-                _ => query
-                    .OrderBy(e => e.DataHora)
+                _ => query.OrderBy(e => e.DataHora)
             };
 
             Eventos = await query.ToListAsync();

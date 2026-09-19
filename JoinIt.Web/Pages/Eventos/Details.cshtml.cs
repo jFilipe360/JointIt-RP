@@ -16,11 +16,8 @@ namespace JoinIt.Web.Pages.Eventos
         private readonly INotificacaoService _notificacaoService;
         private readonly IEstadoEventoService _estadoEventoService;
 
-        public DetailsModel(
-            ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager,
-            INotificacaoService notificacaoService,
-            IEstadoEventoService estadoEventoService)
+        public DetailsModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager,
+            INotificacaoService notificacaoService, IEstadoEventoService estadoEventoService)
         {
             _context = context;
             _userManager = userManager;
@@ -32,9 +29,7 @@ namespace JoinIt.Web.Pages.Eventos
         public bool PodeGerir { get; private set; }
         public bool PodeParticipar { get; private set; }
         public bool EventoCheio { get; private set; }
-        public bool PodeVerLinkOnline =>
-            Evento.IsOnline &&
-            (PodeGerir || EstaAParticipar);
+        public bool PodeVerLinkOnline => Evento.IsOnline && (PodeGerir || EstaAParticipar);
         public int NumeroParticipantes { get; private set; }
         public EstadoPedido? EstadoParticipacaoAtual { get; private set; }
         public bool EstaAParticipar => EstadoParticipacaoAtual == EstadoPedido.Aceite;
@@ -43,6 +38,8 @@ namespace JoinIt.Web.Pages.Eventos
 
         public async Task<IActionResult> OnGetAsync(int id)
         {
+            await _estadoEventoService.AtualizarEstadosAsync();
+
             var resultado = await CarregarPaginaAsync(id);
 
             if (resultado is not null)
@@ -53,12 +50,12 @@ namespace JoinIt.Web.Pages.Eventos
             return Page();
         }
 
+        //Valida as condições de entrada e adiciona o utilizador ao evento público
         public async Task<IActionResult> OnPostParticiparAsync(int id)
         {
             await _estadoEventoService.AtualizarEstadosAsync();
 
-            var utilizadorAtual =
-                await _userManager.GetUserAsync(User);
+            var utilizadorAtual = await _userManager.GetUserAsync(User);
 
             if (utilizadorAtual is null)
             {
@@ -85,30 +82,26 @@ namespace JoinIt.Web.Pages.Eventos
                 return Forbid();
             }
 
-            if (evento.Estado != EstadoEvento.ParaBreve ||
-                evento.DataHora <= DateTime.Now)
+            if (evento.Estado != EstadoEvento.ParaBreve || evento.DataHora <= DateTime.Now)
             {
-                TempData["MensagemErro"] =
-                    "Já não é possível participar neste evento.";
+                TempData["MensagemErro"] = "Já não é possível participar neste evento.";
 
                 return RedirectToPage("./Details", new { id });
             }
 
-            int numeroParticipantes = evento.Participantes.Count(
-                p => p.Estado == EstadoPedido.Aceite);
+            //Apenas participações aceites contam para a lotação máxima do evento
+            int numeroParticipantes = evento.Participantes.Count(p => p.Estado == EstadoPedido.Aceite);
 
             if (numeroParticipantes >= evento.NumMaxParticipantes)
             {
-                TempData["MensagemErro"] =
-                    "O evento já atingiu a lotação máxima.";
+                TempData["MensagemErro"] = "O evento já atingiu a lotação máxima.";
 
                 return RedirectToPage("./Details", new { id });
             }
 
-            var participacao = evento.Participantes
-                .FirstOrDefault(p =>
-                    p.UtilizadorId == utilizadorAtual.Id);
+            var participacao = evento.Participantes.FirstOrDefault(p => p.UtilizadorId == utilizadorAtual.Id);
 
+            //Reutiliza uma participação existente para evitar registos duplicados
             if (participacao is null)
             {
                 evento.Participantes.Add(new Participante
@@ -137,24 +130,22 @@ namespace JoinIt.Web.Pages.Eventos
                 $"{utilizadorAtual.Nome} entrou no teu evento {evento.Titulo}.",
                 link);
 
-            TempData["MensagemSucesso"] =
-                "Entraste no evento com sucesso.";
+            TempData["MensagemSucesso"] = "Entraste no evento com sucesso.";
 
             return RedirectToPage("./Details", new { id });
         }
 
+        //Remove a participação do utilizador no evento
         public async Task<IActionResult> OnPostSairAsync(int id)
         {
-            var utilizadorAtual =
-                await _userManager.GetUserAsync(User);
+            var utilizadorAtual = await _userManager.GetUserAsync(User);
 
             if (utilizadorAtual is null)
             {
                 return Challenge();
             }
 
-            var evento = await _context.Eventos
-                .FirstOrDefaultAsync(e => e.Id == id);
+            var evento = await _context.Eventos.FirstOrDefaultAsync(e => e.Id == id);
 
             if (evento is null)
             {
@@ -168,12 +159,9 @@ namespace JoinIt.Web.Pages.Eventos
             }
 
             var participacao = await _context.Participantes
-                .FirstOrDefaultAsync(p =>
-                    p.EventoId == id &&
-                    p.UtilizadorId == utilizadorAtual.Id);
+                .FirstOrDefaultAsync(p => p.EventoId == id && p.UtilizadorId == utilizadorAtual.Id);
 
-            bool estavaAParticipar =
-                participacao?.Estado == EstadoPedido.Aceite;
+            bool estavaAParticipar = participacao?.Estado == EstadoPedido.Aceite;
 
             if (participacao is not null)
             {
@@ -212,8 +200,7 @@ namespace JoinIt.Web.Pages.Eventos
                     link);
             }
 
-            TempData["MensagemSucesso"] =
-                "Saíste do evento.";
+            TempData["MensagemSucesso"] = "Saíste do evento.";
 
             if (evento.IsPrivado)
             {
@@ -223,6 +210,7 @@ namespace JoinIt.Web.Pages.Eventos
             return RedirectToPage("./Details", new { id });
         }
 
+        //Cancela o evento e notifica os participantes e convidados
         public async Task<IActionResult> OnPostCancelarAsync(int id)
         {
             string? utilizadorId = _userManager.GetUserId(User);
@@ -232,8 +220,7 @@ namespace JoinIt.Web.Pages.Eventos
                 return Challenge();
             }
 
-            var evento = await _context.Eventos
-                .FirstOrDefaultAsync(e => e.Id == id);
+            var evento = await _context.Eventos.FirstOrDefaultAsync(e => e.Id == id);
 
             if (evento is null)
             {
@@ -248,8 +235,7 @@ namespace JoinIt.Web.Pages.Eventos
 
             if (evento.Estado == EstadoEvento.Cancelado)
             {
-                TempData["MensagemErro"] =
-                    "Este evento já se encontra cancelado.";
+                TempData["MensagemErro"] = "Este evento já se encontra cancelado.";
 
                 return RedirectToPage("./Details", new { id });
             }
@@ -257,13 +243,12 @@ namespace JoinIt.Web.Pages.Eventos
             if (evento.Estado == EstadoEvento.Terminado ||
                 evento.DataFim <= DateTime.Now)
             {
-                TempData["MensagemErro"] =
-                    "Não é possível cancelar um evento terminado.";
+                TempData["MensagemErro"] = "Não é possível cancelar um evento terminado.";
 
                 return RedirectToPage("./Details", new { id });
             }
 
-            // Participantes aceites do evento.
+            //Reúne participantes e convidados que devem ser notificados
             var participantes = await _context.Participantes
                 .Where(p =>
                     p.EventoId == id &&
@@ -272,22 +257,18 @@ namespace JoinIt.Web.Pages.Eventos
                 .Select(p => p.UtilizadorId)
                 .ToListAsync();
 
-            // Utilizadores com convites pendentes ou aceites.
             var convidados = await _context.ConvitesEvento
                 .Where(c =>
                     c.EventoId == id &&
                     c.RecetorId != utilizadorId &&
                     (
-                        c.Estado == EstadoPedido.Pendente ||
-                        c.Estado == EstadoPedido.Aceite
+                        c.Estado == EstadoPedido.Pendente || c.Estado == EstadoPedido.Aceite
                     ))
                 .Select(c => c.RecetorId)
                 .ToListAsync();
 
-            var destinatarios = participantes
-                .Concat(convidados)
-                .Distinct()
-                .ToList();
+            //Remove utilizadores repetidos entre participantes e convidados
+            var destinatarios = participantes.Concat(convidados).Distinct().ToList();
 
             evento.Estado = EstadoEvento.Cancelado;
 
@@ -307,12 +288,12 @@ namespace JoinIt.Web.Pages.Eventos
                     link);
             }
 
-            TempData["MensagemSucesso"] =
-                "O evento foi cancelado com sucesso.";
+            TempData["MensagemSucesso"] = "O evento foi cancelado com sucesso.";
 
             return RedirectToPage("./Details", new { id });
         }
 
+        //Carrega o evento e calcula as permissões e estados usados pela página
         private async Task<IActionResult?> CarregarPaginaAsync(int id)
         {
             var evento = await _context.Eventos
@@ -331,7 +312,7 @@ namespace JoinIt.Web.Pages.Eventos
 
             string? utilizadorId = _userManager.GetUserId(User);
 
-            // Por enquanto, os eventos privados só são visíveis ao criador.
+            //Eventos privados só são visíveis ao criador, participantes aceites e convidados
             if (evento.IsPrivado && evento.CriadorId != utilizadorId)
             {
                 if (string.IsNullOrEmpty(utilizadorId))
@@ -340,8 +321,7 @@ namespace JoinIt.Web.Pages.Eventos
                 }
 
                 bool participaNoEvento = evento.Participantes.Any(p =>
-                    p.UtilizadorId == utilizadorId &&
-                    p.Estado == EstadoPedido.Aceite);
+                    p.UtilizadorId == utilizadorId && p.Estado == EstadoPedido.Aceite);
 
                 bool temConvite = await _context.ConvitesEvento
                     .AsNoTracking()
@@ -349,8 +329,7 @@ namespace JoinIt.Web.Pages.Eventos
                         c.EventoId == evento.Id &&
                         c.RecetorId == utilizadorId &&
                         (
-                            c.Estado == EstadoPedido.Pendente ||
-                            c.Estado == EstadoPedido.Aceite
+                            c.Estado == EstadoPedido.Pendente || c.Estado == EstadoPedido.Aceite
                         ));
 
                 if (!participaNoEvento && !temConvite)
@@ -363,18 +342,13 @@ namespace JoinIt.Web.Pages.Eventos
 
             PodeGerir = evento.CriadorId == utilizadorId;
 
-            NumeroParticipantes = evento.Participantes.Count(
-                p => p.Estado == EstadoPedido.Aceite);
+            NumeroParticipantes = evento.Participantes.Count(p => p.Estado == EstadoPedido.Aceite);
 
-            EventoCheio =
-                NumeroParticipantes >= evento.NumMaxParticipantes;
+            EventoCheio = NumeroParticipantes >= evento.NumMaxParticipantes;
 
-            var participacaoAtual = evento.Participantes
-                .FirstOrDefault(
-                    p => p.UtilizadorId == utilizadorId);
+            var participacaoAtual = evento.Participantes.FirstOrDefault(p => p.UtilizadorId == utilizadorId);
 
-            EstadoParticipacaoAtual =
-                participacaoAtual?.Estado;
+            EstadoParticipacaoAtual = participacaoAtual?.Estado;
 
             if (!string.IsNullOrEmpty(utilizadorId))
             {
@@ -386,6 +360,7 @@ namespace JoinIt.Web.Pages.Eventos
                         c.Estado == EstadoPedido.Pendente);
             }
 
+            //A entrada direta só é permitida em eventos públicos futuros com vagas
             PodeParticipar =
                 User.Identity?.IsAuthenticated == true &&
                 !PodeGerir &&

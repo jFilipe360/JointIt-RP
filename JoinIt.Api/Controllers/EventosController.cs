@@ -12,6 +12,7 @@ using System.Security.Claims;
 
 namespace JoinIt.Api.Controllers;
 
+// Disponibiliza operações de consulta, gestão, participação e convites de eventos
 [ApiController]
 [Route("api/eventos")]
 public class EventosController : ControllerBase
@@ -20,9 +21,7 @@ public class EventosController : ControllerBase
     private readonly IEstadoEventoService _estadoEventoService;
     private readonly INotificacaoService _notificacaoService;
 
-    public EventosController(
-    ApplicationDbContext context,
-    IEstadoEventoService estadoEventoService,
+    public EventosController(ApplicationDbContext context, IEstadoEventoService estadoEventoService,
     INotificacaoService notificacaoService)
     {
         _context = context;
@@ -30,14 +29,13 @@ public class EventosController : ControllerBase
         _notificacaoService = notificacaoService;
     }
 
+    // Lista eventos públicos com pesquisa, filtros e paginação
     [HttpGet]
-    public async Task<ActionResult<ResultadoPaginadoDto<EventoResumoDto>>> GetEventos(
-        string? pesquisa = null,
-        int? categoriaId = null,
-        string? estado = null,
-        int page = 1,
-        int pageSize = 10)
+    public async Task<ActionResult<ResultadoPaginadoDto<EventoResumoDto>>> GetEventos(string? pesquisa = null,
+        int? categoriaId = null, string? estado = null, int page = 1, int pageSize = 10)
     {
+        await _estadoEventoService.AtualizarEstadosAsync();
+
         if (page < 1)
         {
             page = 1;
@@ -76,6 +74,7 @@ public class EventosController : ControllerBase
                     ec.Categoria.Id == categoriaId.Value));
         }
 
+        // Converte o estado recebido na query string para o enum da aplicação
         if (!string.IsNullOrWhiteSpace(estado))
         {
             if (!Enum.TryParse<EstadoEvento>(estado, true, out var estadoEvento))
@@ -107,9 +106,10 @@ public class EventosController : ControllerBase
                 Morada = e.Morada,
                 IsPrivado = e.IsPrivado,
                 NumMaxParticipantes = e.NumMaxParticipantes,
-                NumParticipantes = e.Participantes.Count(),
+                NumParticipantes = e.Participantes.Count(p => p.Estado == EstadoPedido.Aceite),
                 VagasDisponiveis =
-                    e.NumMaxParticipantes - e.Participantes.Count(),
+                    e.NumMaxParticipantes -
+                    e.Participantes.Count(p => p.Estado == EstadoPedido.Aceite),
                 Estado = e.Estado,
                 CriadorNome = e.Criador.Nome ?? string.Empty,
                 Categorias = e.EventosCategorias
@@ -135,11 +135,13 @@ public class EventosController : ControllerBase
         });
     }
 
+    // Devolve os detalhes do evento respeitando as regras de acesso a eventos privados
     [HttpGet("{id:int}")]
     public async Task<ActionResult<EventoDetalhesDto>> GetEvento(int id)
     {
-        string? utilizadorId =
-            User.FindFirstValue(ClaimTypes.NameIdentifier);
+        await _estadoEventoService.AtualizarEstadosAsync();
+
+        string? utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         var evento = await _context.Eventos
             .AsNoTracking()
@@ -226,6 +228,7 @@ public class EventosController : ControllerBase
         return Ok(evento);
     }
 
+    // Valida os dados e cria o evento com categorias e participação do criador
     [Authorize]
     [HttpPost]
     public async Task<IActionResult> CriarEvento(CriarEventoDto dto)
@@ -324,6 +327,7 @@ public class EventosController : ControllerBase
             CriadorId = utilizadorId
         };
 
+        // Cria as relações muitos-para-muitos com as categorias selecionadas
         foreach (var categoriaId in categoriaIds)
         {
             evento.EventosCategorias.Add(new EventoCategoria
@@ -332,6 +336,7 @@ public class EventosController : ControllerBase
             });
         }
 
+        // O criador participa automaticamente no próprio evento
         evento.Participantes.Add(new Participante
         {
             UtilizadorId = utilizadorId,
@@ -353,6 +358,8 @@ public class EventosController : ControllerBase
     [HttpGet("meus")]
     public async Task<ActionResult<IEnumerable<EventoResumoDto>>> GetMeusEventos()
     {
+        await _estadoEventoService.AtualizarEstadosAsync();
+
         var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (utilizadorId == null)
@@ -376,9 +383,10 @@ public class EventosController : ControllerBase
                 Morada = e.Morada,
                 IsPrivado = e.IsPrivado,
                 NumMaxParticipantes = e.NumMaxParticipantes,
-                NumParticipantes = e.Participantes.Count(),
+                NumParticipantes = e.Participantes.Count(p => p.Estado == EstadoPedido.Aceite),
                 VagasDisponiveis =
-                    e.NumMaxParticipantes - e.Participantes.Count(),
+                    e.NumMaxParticipantes -
+                    e.Participantes.Count(p => p.Estado == EstadoPedido.Aceite),
                 Estado = e.Estado,
                 CriadorNome = e.Criador.Nome ?? string.Empty,
                 Categorias = e.EventosCategorias
@@ -394,11 +402,10 @@ public class EventosController : ControllerBase
         return Ok(eventos);
     }
 
+    // Atualiza o evento após validar propriedade, estado, lotação e categorias
     [Authorize]
     [HttpPut("{id:int}")]
-    public async Task<IActionResult> EditarEvento(
-    int id,
-    EditarEventoDto dto)
+    public async Task<IActionResult> EditarEvento(int id, EditarEventoDto dto)
     {
         var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -474,9 +481,7 @@ public class EventosController : ControllerBase
             });
         }
 
-        var categoriaIds = dto.CategoriaIds
-            .Distinct()
-            .ToList();
+        var categoriaIds = dto.CategoriaIds.Distinct().ToList();
 
         if (categoriaIds.Count == 0)
         {
@@ -499,8 +504,9 @@ public class EventosController : ControllerBase
             });
         }
 
-        var numeroParticipantes = evento.Participantes
-            .Count(p => p.Estado == EstadoPedido.Aceite);
+
+        // Impede reduzir a lotação abaixo do número atual de participantes
+        var numeroParticipantes = evento.Participantes.Count(p => p.Estado == EstadoPedido.Aceite);
 
         if (dto.NumMaxParticipantes < numeroParticipantes)
         {
@@ -549,6 +555,7 @@ public class EventosController : ControllerBase
             .Select(ec => ec.CategoriaId)
             .ToList();
 
+        // Sincroniza as relações de categorias com os IDs recebidos
         var categoriasParaAdicionar = categoriasValidas
             .Where(idCategoria => !categoriasAtuais.Contains(idCategoria));
 
@@ -570,6 +577,7 @@ public class EventosController : ControllerBase
         });
     }
 
+    // Cancela o evento e notifica participantes e convidados afetados
     [Authorize]
     [HttpPost("{id:int}/cancelar")]
     public async Task<IActionResult> CancelarEvento(int id)
@@ -605,8 +613,7 @@ public class EventosController : ControllerBase
             });
         }
 
-        if (evento.Estado == EstadoEvento.Terminado ||
-            evento.DataFim <= DateTime.Now)
+        if (evento.Estado == EstadoEvento.Terminado || evento.DataFim <= DateTime.Now)
         {
             return BadRequest(new
             {
@@ -633,6 +640,7 @@ public class EventosController : ControllerBase
             .Select(c => c.RecetorId)
             .ToListAsync();
 
+        // Remove destinatários repetidos entre participantes e convidados
         var destinatarios = participantes
             .Concat(convidados)
             .Distinct()
@@ -693,6 +701,7 @@ public class EventosController : ControllerBase
         return NoContent();
     }
 
+    // Adiciona o utilizador a um evento público futuro com vagas.
     [Authorize]
     [HttpPost("{id:int}/participar")]
     public async Task<IActionResult> ParticiparEvento(int id)
@@ -731,8 +740,7 @@ public class EventosController : ControllerBase
             return Forbid();
         }
 
-        if (evento.Estado != EstadoEvento.ParaBreve ||
-            evento.DataHora <= DateTime.Now)
+        if (evento.Estado != EstadoEvento.ParaBreve || evento.DataHora <= DateTime.Now)
         {
             return BadRequest(new
             {
@@ -751,8 +759,8 @@ public class EventosController : ControllerBase
             });
         }
 
-        var participacao = evento.Participantes
-            .FirstOrDefault(p => p.UtilizadorId == utilizadorId);
+        // Reutiliza uma participação existente para evitar registos duplicados
+        var participacao = evento.Participantes.FirstOrDefault(p => p.UtilizadorId == utilizadorId);
 
         if (participacao == null)
         {
@@ -791,6 +799,7 @@ public class EventosController : ControllerBase
         });
     }
 
+    // Remove a participação e, em eventos privados, o convite aceite
     [Authorize]
     [HttpDelete("{id:int}/participacao")]
     public async Task<IActionResult> SairEvento(int id)
@@ -802,8 +811,7 @@ public class EventosController : ControllerBase
             return Unauthorized();
         }
 
-        var evento = await _context.Eventos
-            .FirstOrDefaultAsync(e => e.Id == id);
+        var evento = await _context.Eventos.FirstOrDefaultAsync(e => e.Id == id);
 
         if (evento == null)
         {
@@ -819,9 +827,7 @@ public class EventosController : ControllerBase
         }
 
         var participacao = await _context.Participantes
-            .FirstOrDefaultAsync(p =>
-                p.EventoId == id &&
-                p.UtilizadorId == utilizadorId);
+            .FirstOrDefaultAsync(p => p.EventoId == id && p.UtilizadorId == utilizadorId);
 
         var estavaAParticipar =
             participacao?.Estado == EstadoPedido.Aceite;
@@ -870,11 +876,10 @@ public class EventosController : ControllerBase
         });
     }
 
+    // Valida as regras do evento e envia ou renova um convite para um amigo
     [Authorize]
     [HttpPost("{id:int}/convites")]
-    public async Task<IActionResult> CriarConvite(
-    int id,
-    CriarConviteDto dto)
+    public async Task<IActionResult> CriarConvite(int id, CriarConviteDto dto)
     {
         var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -965,6 +970,7 @@ public class EventosController : ControllerBase
             });
         }
 
+        // Apenas amizades aceites permitem o envio de convites
         var saoAmigos = await _context.Amizades
             .AsNoTracking()
             .AnyAsync(a =>
@@ -996,11 +1002,11 @@ public class EventosController : ControllerBase
             });
         }
 
-        var convite = evento.Convites
-            .FirstOrDefault(c => c.RecetorId == dto.RecetorId);
+        var convite = evento.Convites.FirstOrDefault(c => c.RecetorId == dto.RecetorId);
 
         string mensagem;
 
+        // Reutiliza convites rejeitados para evitar registos duplicados.
         if (convite == null)
         {
             evento.Convites.Add(new ConviteEvento
@@ -1051,14 +1057,12 @@ public class EventosController : ControllerBase
         });
     }
 
+    // Cancela apenas um convite pendente enviado pelo criador do evento
     [Authorize]
     [HttpDelete("{id:int}/convites/{conviteId:int}")]
-    public async Task<IActionResult> CancelarConvite(
-    int id,
-    int conviteId)
+    public async Task<IActionResult> CancelarConvite(int id, int conviteId)
     {
-        var utilizadorId =
-            User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (utilizadorId == null)
         {
@@ -1106,12 +1110,9 @@ public class EventosController : ControllerBase
         });
     }
 
-    private static string? ValidarTipoEvento(
-    bool isOnline,
-    string? linkOnline,
-    string? local,
-    double? latitude,
-    double? longitude)
+    // Valida os requisitos específicos de eventos online e presenciais.
+    private static string? ValidarTipoEvento(bool isOnline, string? linkOnline, string? local,
+        double? latitude, double? longitude)
     {
         if (isOnline)
         {

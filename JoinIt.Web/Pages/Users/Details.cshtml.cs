@@ -17,9 +17,7 @@ namespace JoinIt.Web.Pages.Users
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly INotificacaoService _notificacaoService;
 
-        public DetailsModel(
-            ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager,
+        public DetailsModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager,
             INotificacaoService notificacaoService)
         {
             _context = context;
@@ -39,6 +37,7 @@ namespace JoinIt.Web.Pages.Users
 
         public bool PedidoRecebido { get; private set; }
 
+        // Carrega o perfil, o estado da amizade e os eventos públicos do utilizador
         public async Task<IActionResult> OnGetAsync(string id)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -68,6 +67,7 @@ namespace JoinIt.Web.Pages.Users
 
             if (!PerfilProprio)
             {
+                // Procura a relação de amizade independentemente de quem enviou o pedido
                 var amizade = await _context.Amizades
                     .AsNoTracking()
                     .FirstOrDefaultAsync(a =>
@@ -105,6 +105,7 @@ namespace JoinIt.Web.Pages.Users
             return Page();
         }
 
+        // Envia um pedido de amizade ou reutiliza um pedido anteriormente rejeitado
         public async Task<IActionResult> OnPostEnviarPedidoAsync(string id)
         {
             var utilizadorAtual = await _userManager.GetUserAsync(User);
@@ -121,8 +122,7 @@ namespace JoinIt.Web.Pages.Users
 
             if (id == utilizadorAtual.Id)
             {
-                TempData["MensagemErro"] =
-                    "Não podes enviar um pedido de amizade a ti próprio.";
+                TempData["MensagemErro"] = "Não podes enviar um pedido de amizade a ti próprio.";
 
                 return RedirectToPage("./Details", new { id });
             }
@@ -136,6 +136,7 @@ namespace JoinIt.Web.Pages.Users
                 return NotFound();
             }
 
+            // Evita criar uma segunda relação de amizade entre os mesmos utilizadores
             var amizadeExistente = await _context.Amizades
                 .FirstOrDefaultAsync(a =>
                     (a.EmissorId == utilizadorAtual.Id &&
@@ -157,9 +158,9 @@ namespace JoinIt.Web.Pages.Users
 
                 criarNotificacao = true;
 
-                TempData["MensagemSucesso"] =
-                    "Pedido de amizade enviado.";
+                TempData["MensagemSucesso"] = "Pedido de amizade enviado.";
             }
+            // Um pedido rejeitado pode ser reutilizado como novo pedido
             else if (amizadeExistente.Estado == EstadoPedido.Rejeitado)
             {
                 amizadeExistente.EmissorId = utilizadorAtual.Id;
@@ -169,26 +170,23 @@ namespace JoinIt.Web.Pages.Users
 
                 criarNotificacao = true;
 
-                TempData["MensagemSucesso"] =
-                    "Pedido de amizade enviado novamente.";
+                TempData["MensagemSucesso"] = "Pedido de amizade enviado novamente.";
             }
             else if (amizadeExistente.Estado == EstadoPedido.Aceite)
             {
-                TempData["MensagemErro"] =
-                    "Já são amigos.";
+                TempData["MensagemErro"] = "Já são amigos.";
             }
             else
             {
-                TempData["MensagemErro"] =
-                    "Já existe um pedido de amizade pendente.";
+                TempData["MensagemErro"] = "Já existe um pedido de amizade pendente.";
             }
 
+            // Só guarda e notifica quando foi criado ou renovado um pedido
             if (criarNotificacao)
             {
                 await _context.SaveChangesAsync();
 
-                string link =
-                    Url.Page("/Amigos/Index") ?? "/Friends";
+                string link = Url.Page("/Amigos/Index") ?? "/Amigos";
 
                 await _notificacaoService.CriarAsync(
                     utilizadorDestino.Id,
@@ -200,11 +198,11 @@ namespace JoinIt.Web.Pages.Users
             return RedirectToPage("./Details", new { id });
         }
 
+        // Cancela apenas um pedido pendente enviado pelo utilizador atual
         public async Task<IActionResult> OnPostCancelarPedidoAsync(
             string id)
         {
-            string? utilizadorAtualId =
-                _userManager.GetUserId(User);
+            string? utilizadorAtualId = _userManager.GetUserId(User);
 
             if (string.IsNullOrEmpty(utilizadorAtualId))
             {
@@ -222,12 +220,10 @@ namespace JoinIt.Web.Pages.Users
                 _context.Amizades.Remove(amizade);
                 await _context.SaveChangesAsync();
 
-                TempData["MensagemSucesso"] =
-                    "Pedido de amizade cancelado.";
+                TempData["MensagemSucesso"] = "Pedido de amizade cancelado.";
             }
 
             return RedirectToPage("./Details", new { id });
         }
-
     }
 }

@@ -18,11 +18,8 @@ namespace JoinIt.Web.Pages.Convites
         private readonly INotificacaoService _notificacaoService;
         private readonly IEstadoEventoService _estadoEventoService;
 
-        public IndexModel(
-            ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager,
-            INotificacaoService notificacaoService,
-            IEstadoEventoService estadoEventoService)
+        public IndexModel( ApplicationDbContext context, UserManager<ApplicationUser> userManager,
+            INotificacaoService notificacaoService, IEstadoEventoService estadoEventoService)
         {
             _context = context;
             _userManager = userManager;
@@ -30,12 +27,11 @@ namespace JoinIt.Web.Pages.Convites
             _estadoEventoService = estadoEventoService;
         }
 
-        public IList<ConviteEvento> ConvitesPendentes { get; private set; }
-            = new List<ConviteEvento>();
+        public IList<ConviteEvento> ConvitesPendentes { get; private set; } = new List<ConviteEvento>();
 
-        public IList<ConviteEvento> HistoricoConvites { get; private set; }
-            = new List<ConviteEvento>();
+        public IList<ConviteEvento> HistoricoConvites { get; private set; } = new List<ConviteEvento>();
 
+        //Atualiza os estados dos eventos e carrega os convites do utilizador atual
         public async Task<IActionResult> OnGetAsync()
         {
             string? utilizadorId = _userManager.GetUserId(User);
@@ -51,16 +47,17 @@ namespace JoinIt.Web.Pages.Convites
             return Page();
         }
 
+        //Valida o convite e o evento antes de registar a participação
         public async Task<IActionResult> OnPostAceitarAsync(int id)
         {
-            var utilizadorAtual =
-                await _userManager.GetUserAsync(User);
+            var utilizadorAtual = await _userManager.GetUserAsync(User);
 
             if (utilizadorAtual is null)
             {
                 return Challenge();
             }
 
+            //Só permite responder a convites pendentes do utilizador atual
             var convite = await _context.ConvitesEvento
                 .Include(c => c.Evento)
                     .ThenInclude(e => e.Participantes)
@@ -70,16 +67,14 @@ namespace JoinIt.Web.Pages.Convites
 
             if (convite is null)
             {
-                TempData["MensagemErro"] =
-                    "O convite não foi encontrado.";
+                TempData["MensagemErro"] = "O convite não foi encontrado.";
 
                 return RedirectToPage();
             }
 
             if (convite.Estado != EstadoPedido.Pendente)
             {
-                TempData["MensagemErro"] =
-                    "Este convite já foi respondido.";
+                TempData["MensagemErro"] = "Este convite já foi respondido.";
 
                 return RedirectToPage();
             }
@@ -88,17 +83,14 @@ namespace JoinIt.Web.Pages.Convites
 
             if (!evento.IsPrivado)
             {
-                TempData["MensagemErro"] =
-                    "Este convite não pertence a um evento privado.";
+                TempData["MensagemErro"] = "Este convite não pertence a um evento privado.";
 
                 return RedirectToPage();
             }
 
+            //Recalcula o estado para impedir a entrada em eventos já iniciados ou terminados
             EstadoEvento estadoAtual =
-                _estadoEventoService.CalcularEstado(
-                    evento.DataHora,
-                    evento.DataFim,
-                    evento.Estado);
+                _estadoEventoService.CalcularEstado(evento.DataHora, evento.DataFim, evento.Estado);
 
             if (evento.Estado != estadoAtual)
             {
@@ -108,48 +100,42 @@ namespace JoinIt.Web.Pages.Convites
 
             if (estadoAtual == EstadoEvento.Cancelado)
             {
-                TempData["MensagemErro"] =
-                    "Não é possível aceitar o convite porque o evento foi cancelado.";
+                TempData["MensagemErro"] = "Não é possível aceitar o convite porque o evento foi cancelado.";
 
                 return RedirectToPage();
             }
 
             if (estadoAtual == EstadoEvento.Terminado)
             {
-                TempData["MensagemErro"] =
-                    "Não é possível aceitar o convite porque o evento terminou.";
+                TempData["MensagemErro"] = "Não é possível aceitar o convite porque o evento terminou.";
 
                 return RedirectToPage();
             }
 
-            if (estadoAtual == EstadoEvento.ADecorrer ||
-                evento.DataHora <= DateTime.Now)
+            if (estadoAtual == EstadoEvento.ADecorrer || evento.DataHora <= DateTime.Now)
             {
-                TempData["MensagemErro"] =
-                    "Não é possível aceitar o convite porque o evento já começou.";
+                TempData["MensagemErro"] = "Não é possível aceitar o convite porque o evento já começou.";
 
                 return RedirectToPage();
             }
 
+            //Verifica se já existe uma participação deste utilizador no evento
             var participacao = evento.Participantes
-                .FirstOrDefault(p =>
-                    p.UtilizadorId == utilizadorAtual.Id);
+                .FirstOrDefault(p =>p.UtilizadorId == utilizadorAtual.Id);
 
-            bool jaParticipa =
-                participacao?.Estado == EstadoPedido.Aceite;
+            bool jaParticipa = participacao?.Estado == EstadoPedido.Aceite;
 
-            int numeroParticipantes = evento.Participantes.Count(
-                p => p.Estado == EstadoPedido.Aceite);
+            int numeroParticipantes = evento.Participantes.Count(p => p.Estado == EstadoPedido.Aceite);
 
-            if (!jaParticipa &&
-                numeroParticipantes >= evento.NumMaxParticipantes)
+            //Apenas partecipantes aceites contam para a lotação máxima do evento
+            if (!jaParticipa && numeroParticipantes >= evento.NumMaxParticipantes)
             {
-                TempData["MensagemErro"] =
-                    "O evento já atingiu a lotação máxima.";
+                TempData["MensagemErro"] = "O evento já atingiu a lotação máxima.";
 
                 return RedirectToPage();
             }
 
+            //Reutiliza uma participação existente para evitar registos duplicados
             if (participacao is null)
             {
                 evento.Participantes.Add(new Participante
@@ -165,6 +151,7 @@ namespace JoinIt.Web.Pages.Convites
                 participacao.DataPedido = DateTime.Now;
             }
 
+            //Regista a resposta ao convite após a validação de todos os critérios
             convite.Estado = EstadoPedido.Aceite;
             convite.RespondidoEm = DateTime.Now;
 
@@ -181,18 +168,17 @@ namespace JoinIt.Web.Pages.Convites
                 $"{utilizadorAtual.Nome} aceitou o convite para {evento.Titulo}.",
                 link);
 
-            TempData["MensagemSucesso"] =
-                "Convite aceite. Entraste no evento.";
+            TempData["MensagemSucesso"] = "Convite aceite. Entraste no evento.";
 
             return RedirectToPage(
                 "/Eventos/Details",
                 new { id = evento.Id });
         }
 
+        //Rejeita um convite pendente e envia uma notificação ao emissor
         public async Task<IActionResult> OnPostRejeitarAsync(int id)
         {
-            var utilizadorAtual =
-                await _userManager.GetUserAsync(User);
+            var utilizadorAtual = await _userManager.GetUserAsync(User);
 
             if (utilizadorAtual is null)
             {
@@ -208,8 +194,7 @@ namespace JoinIt.Web.Pages.Convites
 
             if (convite is null)
             {
-                TempData["MensagemErro"] =
-                    "O convite pendente não foi encontrado.";
+                TempData["MensagemErro"] = "O convite pendente não foi encontrado.";
 
                 return RedirectToPage();
             }
@@ -230,14 +215,13 @@ namespace JoinIt.Web.Pages.Convites
                 $"{utilizadorAtual.Nome} rejeitou o convite para {convite.Evento.Titulo}.",
                 link);
 
-            TempData["MensagemSucesso"] =
-                "Convite rejeitado.";
+            TempData["MensagemSucesso"] = "Convite rejeitado.";
 
             return RedirectToPage();
         }
 
-        private async Task CarregarConvitesAsync(
-            string utilizadorId)
+        //Carrega todos os convites recebidos pelo utilizador
+        private async Task CarregarConvitesAsync(string utilizadorId)
         {
             var convites = await _context.ConvitesEvento
                 .AsNoTracking()
@@ -248,14 +232,13 @@ namespace JoinIt.Web.Pages.Convites
                 .OrderByDescending(c => c.CriadoEm)
                 .ToListAsync();
 
+            //Separa os convites pendentes do histórico de convites respondidos
             ConvitesPendentes = convites
-                .Where(c =>
-                    c.Estado == EstadoPedido.Pendente)
+                .Where(c => c.Estado == EstadoPedido.Pendente)
                 .ToList();
 
             HistoricoConvites = convites
-                .Where(c =>
-                    c.Estado != EstadoPedido.Pendente)
+                .Where(c => c.Estado != EstadoPedido.Pendente)
                 .ToList();
         }
     }

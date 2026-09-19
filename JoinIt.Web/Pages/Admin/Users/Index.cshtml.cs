@@ -12,8 +12,7 @@ namespace JoinIt.Web.Pages.Admin.Users
     {
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public IndexModel(
-            UserManager<ApplicationUser> userManager)
+        public IndexModel(UserManager<ApplicationUser> userManager)
         {
             _userManager = userManager;
         }
@@ -24,6 +23,7 @@ namespace JoinIt.Web.Pages.Admin.Users
         public IList<UtilizadorAdminViewModel> Utilizadores { get; private set; }
             = new List<UtilizadorAdminViewModel>();
 
+        //Dados necessários para exibir a lista de utilizadores na página
         public class UtilizadorAdminViewModel
         {
             public string Id { get; set; } = string.Empty;
@@ -44,93 +44,75 @@ namespace JoinIt.Web.Pages.Admin.Users
             await CarregarUtilizadoresAsync();
         }
 
-        public async Task<IActionResult> OnPostTornarAdminAsync(
-            string id)
+        //Atribui a role de administrador a um utilizador
+        public async Task<IActionResult> OnPostTornarAdminAsync( string id)
         {
-            ApplicationUser? utilizador =
-                await _userManager.FindByIdAsync(id);
+            ApplicationUser? utilizador = await _userManager.FindByIdAsync(id);
 
             if (utilizador is null)
             {
                 return NotFound();
             }
 
-            if (!await _userManager.IsInRoleAsync(
-                    utilizador,
-                    "Admin"))
+            if (!await _userManager.IsInRoleAsync( utilizador, "Admin"))
             {
-                IdentityResult resultado =
-                    await _userManager.AddToRoleAsync(
-                        utilizador,
-                        "Admin");
+                IdentityResult resultado = await _userManager.AddToRoleAsync(utilizador, "Admin");
 
                 if (!resultado.Succeeded)
                 {
-                    TempData["MensagemErro"] =
-                        "Não foi possível atribuir a role Admin.";
+                    TempData["MensagemErro"] = "Não foi possível atribuir a role Admin.";
 
                     return RedirectToPage();
                 }
             }
 
-            TempData["MensagemSucesso"] =
-                $"{utilizador.Nome} é agora administrador.";
+            TempData["MensagemSucesso"] = $"{utilizador.Nome} é agora administrador.";
 
             return RedirectToPage();
         }
 
-        public async Task<IActionResult> OnPostRemoverAdminAsync(
-            string id)
+        // Remove a role de administrador de um utilizador, impedindo que um utilizador remova a sua própria role
+        public async Task<IActionResult> OnPostRemoverAdminAsync( string id)
         {
-            string? utilizadorAtualId =
-                _userManager.GetUserId(User);
+            string? utilizadorAtualId = _userManager.GetUserId(User);
 
+            //Evita que o administrador perca o próprio acesso ao painel
             if (id == utilizadorAtualId)
             {
-                TempData["MensagemErro"] =
-                    "Não podes remover a tua própria role de administrador.";
-
+                TempData["MensagemErro"] = "Não podes remover a tua própria role de administrador.";
                 return RedirectToPage();
             }
 
-            ApplicationUser? utilizador =
-                await _userManager.FindByIdAsync(id);
+            ApplicationUser? utilizador = await _userManager.FindByIdAsync(id);
 
             if (utilizador is null)
             {
                 return NotFound();
             }
 
-            if (await _userManager.IsInRoleAsync(
-                    utilizador,
-                    "Admin"))
+            if (await _userManager.IsInRoleAsync( utilizador, "Admin"))
             {
-                IdentityResult resultado =
-                    await _userManager.RemoveFromRoleAsync(
-                        utilizador,
-                        "Admin");
+                IdentityResult resultado = await _userManager.RemoveFromRoleAsync(utilizador,"Admin");
 
                 if (!resultado.Succeeded)
                 {
-                    TempData["MensagemErro"] =
-                        "Não foi possível remover a role Admin.";
+                    TempData["MensagemErro"] = "Não foi possível remover a role Admin.";
 
                     return RedirectToPage();
                 }
             }
 
-            TempData["MensagemSucesso"] =
-                $"{utilizador.Nome} deixou de ser administrador.";
+            TempData["MensagemSucesso"] = $"{utilizador.Nome} deixou de ser administrador.";
 
             return RedirectToPage();
         }
 
+        //Carrega os utilizadores, aplica a pesquisa e identifica os administradores
         private async Task CarregarUtilizadoresAsync()
         {
-            var query = _userManager.Users
-                .AsNoTracking()
-                .AsQueryable();
+            var query = _userManager.Users.AsNoTracking();
 
+            //Permite pesquisar por nome ou email
             if (!string.IsNullOrWhiteSpace(Pesquisa))
             {
                 string pesquisa = Pesquisa.Trim();
@@ -138,18 +120,15 @@ namespace JoinIt.Web.Pages.Admin.Users
                 query = query.Where(u =>
                     u.Nome.Contains(pesquisa) ||
                     (
-                        u.Email != null &&
-                        u.Email.Contains(pesquisa)
+                        u.Email != null && u.Email.Contains(pesquisa)
                     ));
             }
 
-            var utilizadores = await query
-                .OrderBy(u => u.Nome)
-                .ToListAsync();
+            var utilizadores = await query.OrderBy(u => u.Nome).ToListAsync();
 
-            var resultado =
-                new List<UtilizadorAdminViewModel>();
+            var resultado = new List<UtilizadorAdminViewModel>();
 
+            //Verifica se cada utilizador é administrador
             foreach (ApplicationUser utilizador in utilizadores)
             {
                 resultado.Add(new UtilizadorAdminViewModel
@@ -159,9 +138,7 @@ namespace JoinIt.Web.Pages.Admin.Users
                     Email = utilizador.Email ?? string.Empty,
                     FotoPerfil = utilizador.FotoPerfil,
                     CriadoEm = utilizador.CriadoEm,
-                    IsAdmin = await _userManager.IsInRoleAsync(
-                        utilizador,
-                        "Admin")
+                    IsAdmin = await _userManager.IsInRoleAsync(utilizador, "Admin")
                 });
             }
 

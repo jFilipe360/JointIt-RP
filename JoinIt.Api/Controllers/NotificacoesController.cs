@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JoinIt.Api.Controllers;
 
+// Disponibiliza operações autenticadas sobre as notificações do utilizador atual
 [ApiController]
 [Authorize]
 [Route("api/notificacoes")]
@@ -19,11 +20,11 @@ public class NotificacoesController : ControllerBase
         _context = context;
     }
 
+    // Devolve as notificações do utilizador e o número total de não lidas
     [HttpGet]
     public async Task<ActionResult<NotificacoesResponseDto>> GetNotificacoes()
     {
-        var utilizadorId =
-            User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (utilizadorId == null)
         {
@@ -52,11 +53,11 @@ public class NotificacoesController : ControllerBase
         });
     }
 
+    // Marca como lida uma notificação pertencente ao utilizador autenticado
     [HttpPost("{id:int}/ler")]
     public async Task<IActionResult> MarcarLida(int id)
     {
-        var utilizadorId =
-            User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var utilizadorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (utilizadorId == null)
         {
@@ -65,8 +66,7 @@ public class NotificacoesController : ControllerBase
 
         var notificacao = await _context.Notificacoes
             .FirstOrDefaultAsync(n =>
-                n.Id == id &&
-                n.UtilizadorId == utilizadorId);
+                n.Id == id && n.UtilizadorId == utilizadorId);
 
         if (notificacao == null)
         {
@@ -86,6 +86,7 @@ public class NotificacoesController : ControllerBase
         });
     }
 
+    // Marca como lidas todas as notificações não lidas do utilizador
     [HttpPost("ler-todas")]
     public async Task<IActionResult> MarcarTodasLidas()
     {

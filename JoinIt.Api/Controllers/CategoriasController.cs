@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JoinIt.Api.Controllers;
 
+// Disponibiliza a lista pública de categorias existentes
 [ApiController]
 [Route("api/categorias")]
 public class CategoriasController : ControllerBase
@@ -16,11 +17,11 @@ public class CategoriasController : ControllerBase
         _context = context;
     }
 
+    // Devolve as categorias ordenadas alfabeticamente
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CategoriaDto>>> GetCategorias()
     {
         var categorias = await _context.Categorias
-            .AsNoTracking()
             .OrderBy(c => c.Nome)
             .Select(c => new CategoriaDto
             {

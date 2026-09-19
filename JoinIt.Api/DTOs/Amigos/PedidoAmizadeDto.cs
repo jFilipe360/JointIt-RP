@@ -2,6 +2,7 @@
 
 namespace JoinIt.Api.DTOs.Amigos;
 
+// Dados de um pedido de amizade devolvidos pela API
 public class PedidoAmizadeDto
 {
     public int Id { get; set; }

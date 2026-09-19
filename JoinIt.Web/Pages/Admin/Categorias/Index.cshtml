@@ -24,29 +24,24 @@
         <p class="section-kicker mb-1">
             ADMINISTRAÇÃO
         </p>
-
         <h1 class="section-title mb-2">
             Categorias
         </h1>
-
         <p class="text-muted mb-0">
             Consulta e gere as categorias disponíveis nos eventos.
         </p>
     </div>
-
     <a asp-page="/Admin/Index"
        class="btn btn-outline-secondary">
         Voltar ao painel
     </a>
 </div>
-
 <div class="d-flex justify-content-between
             align-items-center mb-3">
 
     <h2 class="h5 fw-bold mb-0">
         Categorias registadas
     </h2>
-
     <div class="d-flex align-items-center gap-3">
         <span class="resultados-count">
             @Model.Categorias.Count
@@ -54,7 +49,6 @@
                 ? "categoria"
                 : "categorias")
         </span>
-
         <a asp-page="./Create"
            class="btn btn-primary">
             Nova categoria
@@ -68,7 +62,6 @@
         <h3 class="h5 fw-bold">
             Nenhuma categoria encontrada
         </h3>
-
         <p class="text-muted mb-0">
             Ainda não existem categorias registadas.
         </p>
@@ -78,18 +71,15 @@ else
 {
     <div class="card evento-details-card">
         <div class="table-responsive">
-
             <table class="table align-middle mb-0 admin-table">
                 <thead>
                     <tr>
                         <th>Categoria</th>
-
                         <th class="text-end">
                             Ações
                         </th>
                     </tr>
                 </thead>
-
                 <tbody>
                     @foreach (var categoria in Model.Categorias)
                     {
@@ -99,32 +89,27 @@ else
                                     @categoria.Nome
                                 </div>
                             </td>
-
                             <td class="text-end">
                                 <div class="d-flex flex-wrap
                                             justify-content-end gap-2">
-
                                     <a asp-page="./Edit"
                                        asp-route-id="@categoria.Id"
                                        class="btn btn-sm
                                               btn-outline-secondary">
                                         Editar
                                     </a>
-
                                     <a asp-page="./Delete"
                                        asp-route-id="@categoria.Id"
                                        class="btn btn-sm
                                               btn-outline-danger">
                                         Apagar
                                     </a>
-
                                 </div>
                             </td>
                         </tr>
                     }
                 </tbody>
             </table>
-
         </div>
     </div>
 }

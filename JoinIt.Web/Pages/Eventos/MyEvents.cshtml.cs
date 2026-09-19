@@ -17,9 +17,7 @@ namespace JoinIt.Web.Pages.Eventos
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEstadoEventoService _estadoEventoService;
 
-        public MyEventsModel(
-            ApplicationDbContext context,
-            UserManager<ApplicationUser> userManager,
+        public MyEventsModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager,
             IEstadoEventoService estadoEventoService)
         {
             _context = context;
@@ -30,11 +28,9 @@ namespace JoinIt.Web.Pages.Eventos
         [BindProperty(SupportsGet = true)]
         public string Filtro { get; set; } = "ativos";
 
-        public IList<Evento> EventosCriados { get; private set; }
-            = new List<Evento>();
+        public IList<Evento> EventosCriados { get; private set; } = new List<Evento>();
 
-        public IList<Evento> EventosParticipados { get; private set; }
-            = new List<Evento>();
+        public IList<Evento> EventosParticipados { get; private set; } = new List<Evento>();
 
         public async Task<IActionResult> OnGetAsync()
         {
@@ -47,16 +43,16 @@ namespace JoinIt.Web.Pages.Eventos
 
             await _estadoEventoService.AtualizarEstadosAsync();
 
-            var queryEventosCriados = _context.Eventos
+            // Carrega separadamente os eventos criados e os eventos em que o utilizador participa
+            IQueryable<Evento> queryEventosCriados = _context.Eventos
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(e => e.CriadorId == utilizadorId)
                 .Include(e => e.EventosCategorias)
                     .ThenInclude(ec => ec.Categoria)
-                .Include(e => e.Participantes)
-                .AsQueryable();
+                .Include(e => e.Participantes);
 
-            var queryEventosParticipados = _context.Eventos
+            IQueryable<Evento> queryEventosParticipados = _context.Eventos
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(e =>
@@ -67,54 +63,43 @@ namespace JoinIt.Web.Pages.Eventos
                 .Include(e => e.Criador)
                 .Include(e => e.EventosCategorias)
                     .ThenInclude(ec => ec.Categoria)
-                .Include(e => e.Participantes)
-                .AsQueryable();
+                .Include(e => e.Participantes);
 
-            queryEventosCriados =
-                AplicarFiltro(queryEventosCriados);
+            queryEventosCriados = AplicarFiltro(queryEventosCriados);
 
-            queryEventosParticipados =
-                AplicarFiltro(queryEventosParticipados);
+            queryEventosParticipados = AplicarFiltro(queryEventosParticipados);
 
-            EventosCriados = await Ordenar(queryEventosCriados)
-                .ToListAsync();
+            EventosCriados = await Ordenar(queryEventosCriados).ToListAsync();
 
-            EventosParticipados = await Ordenar(queryEventosParticipados)
-                .ToListAsync();
+            EventosParticipados = await Ordenar(queryEventosParticipados).ToListAsync();
 
             return Page();
         }
 
-        private IQueryable<Evento> AplicarFiltro(
-            IQueryable<Evento> query)
+        // Aplica o mesmo filtro às duas listas
+        private IQueryable<Evento> AplicarFiltro(IQueryable<Evento> query)
         {
+            // Por defeito, "ativos" inclui eventos futuros e eventos a decorrer
             return Filtro switch
             {
                 "todos" => query,
 
-                "futuros" => query.Where(e =>
-                    e.Estado == EstadoEvento.ParaBreve),
+                "futuros" => query.Where(e => e.Estado == EstadoEvento.ParaBreve),
 
-                "decorrer" => query.Where(e =>
-                    e.Estado == EstadoEvento.ADecorrer),
+                "decorrer" => query.Where(e => e.Estado == EstadoEvento.ADecorrer),
 
-                "terminados" => query.Where(e =>
-                    e.Estado == EstadoEvento.Terminado),
+                "terminados" => query.Where(e => e.Estado == EstadoEvento.Terminado),
 
-                "cancelados" => query.Where(e =>
-                    e.Estado == EstadoEvento.Cancelado),
+                "cancelados" => query.Where(e => e.Estado == EstadoEvento.Cancelado),
 
-                _ => query.Where(e =>
-                    e.Estado == EstadoEvento.ParaBreve ||
-                    e.Estado == EstadoEvento.ADecorrer)
+                _ => query.Where(e => e.Estado == EstadoEvento.ParaBreve || e.Estado == EstadoEvento.ADecorrer)
             };
         }
 
-        private IQueryable<Evento> Ordenar(
-            IQueryable<Evento> query)
+        // Ordena eventos concluídos do mais recente para o mais antigo e os restantes por data crescente
+        private IQueryable<Evento> Ordenar(IQueryable<Evento> query)
         {
-            if (Filtro == "terminados" ||
-                Filtro == "cancelados")
+            if (Filtro == "terminados" || Filtro == "cancelados")
             {
                 return query.OrderByDescending(e => e.DataHora);
             }

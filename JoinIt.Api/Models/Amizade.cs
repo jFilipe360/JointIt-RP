@@ -3,16 +3,19 @@ using System.ComponentModel.DataAnnotations;
 
 namespace JoinIt.Api.Models
 {
+    // Representa uma relação de amizade entre dois utilizadores
     public class Amizade
     {
         public int Id { get; set; }
 
-        [Required]
+        // Utilizador que enviou o pedido de amizade
+        [Required(ErrorMessage = "O emissor é obrigatório.")]
         public string EmissorId { get; set; } = string.Empty;
 
         public ApplicationUser Emissor { get; set; } = null!;
 
-        [Required]
+        // Utilizador que recebeu o pedido de amizade
+        [Required(ErrorMessage = "O recetor é obrigatório.")]
         public string RecetorId { get; set; } = string.Empty;
 
         public ApplicationUser Recetor { get; set; } = null!;

@@ -5,25 +5,21 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace JoinIt.Web.Services
 {
+    // Cria notificações na base de dados e envia-as em tempo real através do SignalR
     public class NotificacaoService : INotificacaoService
     {
         private readonly ApplicationDbContext _context;
         private readonly IHubContext<NotificacoesHub> _hubContext;
 
-        public NotificacaoService(
-            ApplicationDbContext context,
-            IHubContext<NotificacoesHub> hubContext)
+        public NotificacaoService(ApplicationDbContext context, IHubContext<NotificacoesHub> hubContext)
         {
             _context = context;
             _hubContext = hubContext;
         }
 
-        public async Task CriarAsync(
-            string utilizadorId,
-            string titulo,
-            string mensagem,
-            string? link = null)
+        public async Task CriarAsync(string utilizadorId, string titulo, string mensagem, string? link = null)
         {
+            // Garante que os dados obrigatórios da notificação foram fornecidos
             if (string.IsNullOrWhiteSpace(utilizadorId))
             {
                 throw new ArgumentException(
@@ -45,6 +41,7 @@ namespace JoinIt.Web.Services
                     nameof(mensagem));
             }
 
+            // Normaliza os dados antes de guardar a notificação
             var notificacao = new Notificacao
             {
                 UtilizadorId = utilizadorId,
@@ -57,14 +54,15 @@ namespace JoinIt.Web.Services
                 CriadoEm = DateTime.Now
             };
 
+            // Guarda primeiro a notificação para obter o respetivo identificador
             _context.Notificacoes.Add(notificacao);
 
             await _context.SaveChangesAsync();
 
+            // Envia a notificação em tempo real apenas ao utilizador destinatário
             await _hubContext.Clients
                 .User(utilizadorId)
-                .SendAsync(
-                    "ReceberNotificacao",
+                .SendAsync("ReceberNotificacao",
                     new
                     {
                         id = notificacao.Id,

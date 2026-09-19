@@ -1,5 +1,6 @@
 ﻿namespace JoinIt.Api.DTOs.Auth;
 
+// Dados devolvidos após um registo ou login bem-sucedido
 public class AuthResponseDto
 {
     public string Token { get; set; } = string.Empty;

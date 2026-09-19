@@ -20,10 +20,10 @@ namespace JoinIt.Web.Pages.Admin.Categorias
         [BindProperty]
         public Categoria Categoria { get; set; } = null!;
 
+        //Csrrega a categoria a eliminar
         public async Task<IActionResult> OnGetAsync(int id)
         {
-            var categoria = await _context
-                .Set<Categoria>()
+            var categoria = await _context.Categorias
                 .AsNoTracking()
                 .FirstOrDefaultAsync(c => c.Id == id);
 
@@ -39,8 +39,8 @@ namespace JoinIt.Web.Pages.Admin.Categorias
 
         public async Task<IActionResult> OnPostAsync()
         {
-            var categoria = await _context
-                .Set<Categoria>()
+            //Carrega as relações para impedir a eliminação de categorias associadas a eventos
+            var categoria = await _context.Categorias
                 .Include(c => c.EventosCategorias)
                 .FirstOrDefaultAsync(c => c.Id == Categoria.Id);
 
@@ -49,20 +49,18 @@ namespace JoinIt.Web.Pages.Admin.Categorias
                 return NotFound();
             }
 
+            //Não permite apagar a categoria se estiver associada a eventos
             if (categoria.EventosCategorias.Count > 0)
             {
-                TempData["MensagemErro"] =
-                    "Não é possível apagar esta categoria porque está associada a eventos.";
-
+                TempData["MensagemErro"] = "Não é possível apagar esta categoria porque está associada a eventos.";
                 return RedirectToPage("./Index");
             }
 
-            _context.Set<Categoria>().Remove(categoria);
+            _context.Categorias.Remove(categoria);
 
             await _context.SaveChangesAsync();
 
-            TempData["MensagemSucesso"] =
-                "Categoria apagada com sucesso.";
+            TempData["MensagemSucesso"] = "Categoria apagada com sucesso.";
 
             return RedirectToPage("./Index");
         }

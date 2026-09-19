@@ -10,15 +10,11 @@
 <div class="d-flex justify-content-between align-items-start mb-4">
     <div>
         <h1>Convidar amigos</h1>
-
         <p class="text-muted mb-0">
             Evento: @Model.Evento.Titulo
         </p>
     </div>
-
-    <a asp-page="./Details"
-       asp-route-id="@Model.Evento.Id"
-       class="btn btn-secondary">
+    <a asp-page="./Details" asp-route-id="@Model.Evento.Id" class="btn btn-secondary">
         Voltar ao evento
     </a>
 </div>
@@ -42,12 +38,10 @@
         <h5 class="card-title">
             Lotação
         </h5>
-
         <p class="mb-0">
             @Model.NumeroParticipantes /
             @Model.Evento.NumMaxParticipantes participantes
         </p>
-
         <p class="text-muted mb-0">
             @Model.LugaresDisponiveis lugares disponíveis
         </p>
@@ -58,9 +52,7 @@
 {
     <div class="alert alert-info">
         Ainda não tens amigos disponíveis para convidar.
-
-        <a asp-page="/Users/Index"
-           class="alert-link">
+        <a asp-page="/Users/Index" class="alert-link">
             Procurar utilizadores
         </a>
     </div>
@@ -80,18 +72,13 @@ else
             <div class="col-md-6 col-lg-4 mb-4">
                 <div class="card h-100 shadow-sm">
                     <div class="card-body text-center">
-
                         <div class="d-flex justify-content-center mb-3">
-                            <partial name="_UserAvatar"
-                                     model="avatarAmigo" />
+                            <partial name="_UserAvatar" model="avatarAmigo" />
                         </div>
-
                         <h5 class="card-title">
                             @amigo.Utilizador.Nome
                         </h5>
-
-                        <a asp-page="/Users/Details"
-                           asp-route-id="@amigo.Utilizador.Id"
+                        <a asp-page="/Users/Details" asp-route-id="@amigo.Utilizador.Id"
                            class="btn btn-sm btn-link mb-2">
                             Ver perfil
                         </a>
@@ -104,28 +91,22 @@ else
                                 </span>
                             </div>
                         }
-                        else if (amigo.EstadoConvite ==
-                                 EstadoPedido.Pendente)
+                        else if (amigo.EstadoConvite == EstadoPedido.Pendente)
                         {
                             <div>
                                 <span class="badge bg-warning text-dark p-2 mb-2">
                                     Convite pendente
                                 </span>
 
-                                <form method="post"
-                                      asp-page-handler="Cancelar"
-                                      asp-route-id="@Model.Evento.Id"
-                                      asp-route-conviteId="@amigo.ConviteId">
-
-                                    <button type="submit"
-                                            class="btn btn-sm btn-outline-danger">
+                                <form method="post" asp-page-handler="Cancelar"
+                                      asp-route-id="@Model.Evento.Id" asp-route-conviteId="@amigo.ConviteId">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
                                         Cancelar convite
                                     </button>
                                 </form>
                             </div>
                         }
-                        else if (amigo.EstadoConvite ==
-                                 EstadoPedido.Aceite)
+                        else if (amigo.EstadoConvite == EstadoPedido.Aceite)
                         {
                             <div>
                                 <span class="badge bg-success p-2">
@@ -135,13 +116,9 @@ else
                         }
                         else
                         {
-                            <form method="post"
-                                  asp-page-handler="Enviar"
-                                  asp-route-id="@Model.Evento.Id"
+                            <form method="post" asp-page-handler="Enviar" asp-route-id="@Model.Evento.Id"
                                   asp-route-recetorId="@amigo.Utilizador.Id">
-
-                                <button type="submit"
-                                        class="btn btn-primary"
+                                <button type="submit" class="btn btn-primary"
                                         disabled="@(Model.LugaresDisponiveis == 0)">
                                     @(amigo.EstadoConvite ==
                                       EstadoPedido.Rejeitado
@@ -150,8 +127,7 @@ else
                                 </button>
                             </form>
 
-                            @if (amigo.EstadoConvite ==
-                                 EstadoPedido.Rejeitado)
+                            @if (amigo.EstadoConvite == EstadoPedido.Rejeitado)
                             {
                                 <span class="d-block text-muted mt-2">
                                     O convite anterior foi rejeitado.

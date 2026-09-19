@@ -12,53 +12,38 @@ namespace JoinIt.Web.Hubs
     [Authorize]
     public class ChatHub : Hub
     {
-        /*
-         * Guarda as ligações ativas.
-         *
-         * Chave:
-         * ConnectionId do SignalR.
-         *
-         * Valor:
-         * Evento e utilizador associados à ligação.
-         */
-        private static readonly ConcurrentDictionary<string, LigacaoChat>
-            Ligacoes = new();
+        //Liga cada ConnectionId ao evento e ao utilizador que está ligado a esse evento.
+        private static readonly ConcurrentDictionary<string, LigacaoChat> Ligacoes = new();
 
         private readonly ApplicationDbContext _context;
         private readonly IEstadoEventoService _estadoEventoService;
 
-        public ChatHub(
-            ApplicationDbContext context,
-            IEstadoEventoService estadoEventoService)
+        public ChatHub(ApplicationDbContext context,IEstadoEventoService estadoEventoService)
         {
             _context = context;
             _estadoEventoService = estadoEventoService;
         }
 
+        //Valida o acesso e adiciona a ligação ao grupo SignalR correspondente ao evento.
         public async Task EntrarNoEvento(int eventoId)
         {
             if (eventoId <= 0)
             {
-                throw new HubException(
-                    "O evento indicado não é válido.");
+                throw new HubException("O evento indicado não é válido.");
             }
 
             string? utilizadorId = Context.UserIdentifier;
 
             if (string.IsNullOrWhiteSpace(utilizadorId))
             {
-                throw new HubException(
-                    "Não foi possível identificar o utilizador.");
+                throw new HubException("Não foi possível identificar o utilizador.");
             }
 
-            bool podeAceder = await PodeAcederAoEventoAsync(
-                eventoId,
-                utilizadorId);
+            bool podeAceder = await PodeAcederAoEventoAsync(eventoId, utilizadorId);
 
             if (!podeAceder)
             {
-                throw new HubException(
-                    "Não tens acesso ao chat deste evento.");
+                throw new HubException("Não tens acesso ao chat deste evento.");
             }
 
             string? nomeUtilizador = await _context.Users
@@ -69,68 +54,43 @@ namespace JoinIt.Web.Hubs
 
             if (string.IsNullOrWhiteSpace(nomeUtilizador))
             {
-                throw new HubException(
-                    "O utilizador não foi encontrado.");
+                throw new HubException("O utilizador não foi encontrado.");
             }
 
-            /*
-             * Impede que a mesma ligação fique associada
-             * simultaneamente a dois eventos.
-             */
-            if (Ligacoes.TryGetValue(
-                    Context.ConnectionId,
-                    out LigacaoChat? ligacaoAnterior))
+            //Uma ligação só pode estar associada a um evento de cada vez.
+            if (Ligacoes.TryGetValue(Context.ConnectionId, out LigacaoChat? ligacaoAnterior))
             {
                 if (ligacaoAnterior.EventoId == eventoId)
                 {
-                    await EnviarUtilizadoresLigadosAsync(
-                        eventoId);
-
+                    await EnviarUtilizadoresLigadosAsync(eventoId);
                     return;
                 }
 
-                await RemoverLigacaoDoEventoAsync(
-                    Context.ConnectionId,
-                    ligacaoAnterior);
+                await RemoverLigacaoDoEventoAsync(Context.ConnectionId,ligacaoAnterior);
             }
 
-            bool utilizadorJaEstavaLigado =
-                ExisteOutraLigacao(
-                    eventoId,
-                    utilizadorId,
-                    Context.ConnectionId);
+            bool utilizadorJaEstavaLigado = ExisteOutraLigacao(eventoId, utilizadorId,Context.ConnectionId);
 
-            await Groups.AddToGroupAsync(
-                Context.ConnectionId,
-                ObterNomeGrupo(eventoId));
+            await Groups.AddToGroupAsync(Context.ConnectionId,ObterNomeGrupo(eventoId));
 
-            Ligacoes[Context.ConnectionId] =
-                new LigacaoChat(
-                    eventoId,
-                    utilizadorId,
-                    nomeUtilizador);
+            Ligacoes[Context.ConnectionId] = new LigacaoChat(eventoId,utilizadorId,nomeUtilizador);
 
-            /*
-             * Só apresenta o aviso de entrada quando esta
-             * é a primeira ligação dessa conta ao evento.
-             */
+            //Evita avisos repetidos quando o utilziador tem várias ligações ao mesmo evento.
             if (!utilizadorJaEstavaLigado)
             {
                 await Clients
                     .OthersInGroup(ObterNomeGrupo(eventoId))
-                    .SendAsync(
-                        "UtilizadorEntrou",
-                        new
+                    .SendAsync("UtilizadorEntrou",new
                         {
                             utilizadorId,
                             nome = nomeUtilizador
                         });
             }
 
-            await EnviarUtilizadoresLigadosAsync(
-                eventoId);
+            await EnviarUtilizadoresLigadosAsync(eventoId);
         }
 
+        //Remove a ligação atual do grupo do evento.
         public async Task SairDoEvento(int eventoId)
         {
             if (eventoId <= 0)
@@ -138,9 +98,7 @@ namespace JoinIt.Web.Hubs
                 return;
             }
 
-            if (!Ligacoes.TryGetValue(
-                    Context.ConnectionId,
-                    out LigacaoChat? ligacao))
+            if (!Ligacoes.TryGetValue(Context.ConnectionId,out LigacaoChat? ligacao))
             {
                 return;
             }
@@ -150,53 +108,43 @@ namespace JoinIt.Web.Hubs
                 return;
             }
 
-            await RemoverLigacaoDoEventoAsync(
-                Context.ConnectionId,
-                ligacao);
+            await RemoverLigacaoDoEventoAsync(Context.ConnectionId,ligacao);
         }
 
-        public async Task EnviarMensagem(
-            int eventoId,
-            string? conteudo)
+        //Valida, guarda e envia a mensagem para todos os utilizadores ligados ao evento.
+        public async Task EnviarMensagem(int eventoId,string? conteudo)
         {
             if (eventoId <= 0)
             {
-                throw new HubException(
-                    "O evento indicado não é válido.");
+                throw new HubException("O evento indicado não é válido.");
             }
 
             string? utilizadorId = Context.UserIdentifier;
 
             if (string.IsNullOrWhiteSpace(utilizadorId))
             {
-                throw new HubException(
-                    "Não foi possível identificar o utilizador.");
+                throw new HubException("Não foi possível identificar o utilizador.");
             }
 
-            string conteudoLimpo =
-                conteudo?.Trim() ?? string.Empty;
+            string conteudoLimpo = conteudo?.Trim() ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(conteudoLimpo))
             {
-                throw new HubException(
-                    "A mensagem não pode estar vazia.");
+                throw new HubException("A mensagem não pode estar vazia.");
             }
 
             if (conteudoLimpo.Length > 500)
             {
-                throw new HubException(
-                    "A mensagem não pode ultrapassar 500 caracteres.");
+                throw new HubException("A mensagem não pode ultrapassar 500 caracteres.");
             }
 
             var evento = await _context.Eventos
                 .Include(e => e.Participantes)
-                .FirstOrDefaultAsync(
-                    e => e.Id == eventoId);
+                .FirstOrDefaultAsync(e => e.Id == eventoId);
 
             if (evento is null)
             {
-                throw new HubException(
-                    "O evento não foi encontrado.");
+                throw new HubException("O evento não foi encontrado.");
             }
 
             bool podeAceder =
@@ -207,10 +155,10 @@ namespace JoinIt.Web.Hubs
 
             if (!podeAceder)
             {
-                throw new HubException(
-                    "Não tens acesso ao chat deste evento.");
+                throw new HubException("Não tens acesso ao chat deste evento.");
             }
 
+            //Adiciona o estado do evento antes de decidir se o chat permite ou não enviar mensagens.
             EstadoEvento estadoAtual =
                 _estadoEventoService.CalcularEstado(
                     evento.DataHora,
@@ -222,9 +170,8 @@ namespace JoinIt.Web.Hubs
                 evento.Estado = estadoAtual;
             }
 
-            bool chatAtivo =
-                estadoAtual == EstadoEvento.ParaBreve ||
-                estadoAtual == EstadoEvento.ADecorrer;
+            //O histórico continua disponível, mas só eventos ativos aceitam mensagens.
+            bool chatAtivo = estadoAtual == EstadoEvento.ParaBreve || estadoAtual == EstadoEvento.ADecorrer;
 
             if (!chatAtivo)
             {
@@ -233,8 +180,7 @@ namespace JoinIt.Web.Hubs
                     await _context.SaveChangesAsync();
                 }
 
-                throw new HubException(
-                    "Este chat encontra-se em modo de leitura.");
+                throw new HubException("Este chat encontra-se em modo de leitura.");
             }
 
             var utilizador = await _context.Users
@@ -249,8 +195,7 @@ namespace JoinIt.Web.Hubs
 
             if (utilizador is null)
             {
-                throw new HubException(
-                    "O utilizador não foi encontrado.");
+                throw new HubException("O utilizador não foi encontrado.");
             }
 
             var mensagem = new MensagemEvento
@@ -277,17 +222,13 @@ namespace JoinIt.Web.Hubs
 
             await Clients
                 .Group(ObterNomeGrupo(eventoId))
-                .SendAsync(
-                    "ReceberMensagem",
-                    mensagemCliente);
+                .SendAsync("ReceberMensagem",mensagemCliente);
         }
 
-        public override async Task OnDisconnectedAsync(
-            Exception? exception)
+        //Limpa a presença do utilizador quando a ligação SignalR é encerrada.
+        public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            if (Ligacoes.TryRemove(
-                    Context.ConnectionId,
-                    out LigacaoChat? ligacao))
+            if (Ligacoes.TryRemove(Context.ConnectionId,out LigacaoChat? ligacao))
             {
                 bool utilizadorContinuaLigado =
                     ExisteOutraLigacao(
@@ -298,10 +239,8 @@ namespace JoinIt.Web.Hubs
                 if (!utilizadorContinuaLigado)
                 {
                     await Clients
-                        .Group(ObterNomeGrupo(
-                            ligacao.EventoId))
-                        .SendAsync(
-                            "UtilizadorSaiu",
+                        .Group(ObterNomeGrupo(ligacao.EventoId))
+                        .SendAsync("UtilizadorSaiu",
                             new
                             {
                                 utilizadorId =
@@ -312,38 +251,27 @@ namespace JoinIt.Web.Hubs
                             });
                 }
 
-                await EnviarUtilizadoresLigadosAsync(
-                    ligacao.EventoId);
+                await EnviarUtilizadoresLigadosAsync(ligacao.EventoId);
             }
 
             await base.OnDisconnectedAsync(exception);
         }
 
-        private async Task RemoverLigacaoDoEventoAsync(
-            string connectionId,
-            LigacaoChat ligacao)
+        //Remove a ligação e notifica o grupo se o utilizador ficar totalmente offline.
+        private async Task RemoverLigacaoDoEventoAsync(string connectionId,LigacaoChat ligacao)
         {
-            await Groups.RemoveFromGroupAsync(
-                connectionId,
-                ObterNomeGrupo(ligacao.EventoId));
+            await Groups.RemoveFromGroupAsync(connectionId,ObterNomeGrupo(ligacao.EventoId));
 
-            Ligacoes.TryRemove(
-                connectionId,
-                out _);
+            Ligacoes.TryRemove(connectionId,out _);
 
             bool utilizadorContinuaLigado =
-                ExisteOutraLigacao(
-                    ligacao.EventoId,
-                    ligacao.UtilizadorId,
-                    connectionId);
+                ExisteOutraLigacao(ligacao.EventoId,ligacao.UtilizadorId,connectionId);
 
             if (!utilizadorContinuaLigado)
             {
                 await Clients
-                    .Group(ObterNomeGrupo(
-                        ligacao.EventoId))
-                    .SendAsync(
-                        "UtilizadorSaiu",
+                    .Group(ObterNomeGrupo(ligacao.EventoId))
+                    .SendAsync("UtilizadorSaiu",
                         new
                         {
                             utilizadorId =
@@ -354,12 +282,11 @@ namespace JoinIt.Web.Hubs
                         });
             }
 
-            await EnviarUtilizadoresLigadosAsync(
-                ligacao.EventoId);
+            await EnviarUtilizadoresLigadosAsync(ligacao.EventoId);
         }
 
-        private async Task EnviarUtilizadoresLigadosAsync(
-            int eventoId)
+        //Envia ao grupo a lista de utilizadores únicos atualmente ligados.
+        private async Task EnviarUtilizadoresLigadosAsync(int eventoId)
         {
             var utilizadoresLigados = Ligacoes
                 .Values
@@ -378,15 +305,11 @@ namespace JoinIt.Web.Hubs
 
             await Clients
                 .Group(ObterNomeGrupo(eventoId))
-                .SendAsync(
-                    "AtualizarUtilizadoresLigados",
-                    utilizadoresLigados);
+                .SendAsync("AtualizarUtilizadoresLigados",utilizadoresLigados);
         }
 
-        private static bool ExisteOutraLigacao(
-            int eventoId,
-            string utilizadorId,
-            string connectionIdIgnorado)
+        //Verifica se a mesma conta ainda possui outra ligação ao mesmo evento.
+        private static bool ExisteOutraLigacao(int eventoId,string utilizadorId,string connectionIdIgnorado)
         {
             return Ligacoes.Any(item =>
                 item.Key != connectionIdIgnorado &&
@@ -394,9 +317,8 @@ namespace JoinIt.Web.Hubs
                 item.Value.UtilizadorId == utilizadorId);
         }
 
-        private async Task<bool> PodeAcederAoEventoAsync(
-            int eventoId,
-            string utilizadorId)
+        //O chat só é acessível ao criador do evento e aos participantes que tenham o pedido aceite.
+        private async Task<bool> PodeAcederAoEventoAsync(int eventoId,string utilizadorId)
         {
             return await _context.Eventos
                 .AsNoTracking()
@@ -415,9 +337,6 @@ namespace JoinIt.Web.Hubs
             return $"evento-{eventoId}";
         }
 
-        private sealed record LigacaoChat(
-            int EventoId,
-            string UtilizadorId,
-            string Nome);
+        private sealed record LigacaoChat(int EventoId,string UtilizadorId,string Nome);
     }
 }

@@ -22,14 +22,14 @@ namespace JoinIt.Web.Pages.Admin
         public int EventosCancelados { get; private set; }
         public int TotalParticipacoes { get; private set; }
 
+        //Calcula os principais indicadores do sistema para apresentar na página de administração
         public async Task OnGetAsync()
         {
-            TotalUtilizadores =
-                await _context.Users.CountAsync();
+            TotalUtilizadores = await _context.Users.CountAsync();
 
-            TotalEventos =
-                await _context.Eventos.CountAsync();
+            TotalEventos = await _context.Eventos.CountAsync();
 
+            //Considera ativos os eventos que estão para breve ou a decorrer
             EventosAtivos =
                 await _context.Eventos.CountAsync(e =>
                     e.Estado == EstadoEvento.ParaBreve ||

@@ -2,6 +2,7 @@
 
 namespace JoinIt.Api.DTOs.Convites;
 
+// Dados de um convite para evento devolvidos pela API
 public class ConviteDto
 {
     public int Id { get; set; }

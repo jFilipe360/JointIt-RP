@@ -1,5 +1,6 @@
 ﻿namespace JoinIt.Web.ViewModels
 {
+    // Dados necessários para apresentar o avatar de um utilizador
     public class AvatarUtilizadorViewModel
     {
         public string Nome { get; set; } = string.Empty;

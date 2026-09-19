@@ -1,5 +1,6 @@
 ﻿namespace JoinIt.Api.DTOs.Notificacoes;
 
+// Dados de uma notificação devolvidos pela API
 public class NotificacaoDto
 {
     public int Id { get; set; }

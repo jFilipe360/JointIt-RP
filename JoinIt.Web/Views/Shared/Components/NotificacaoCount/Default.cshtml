@@ -1,50 +1,33 @@
 ﻿@model JoinIt.Web.ViewModels.NotificacoesDropdownViewModel
 
-<div class="dropdown"
-     id="notificacoesDropdown">
-
-    <button type="button"
-            class="btn nav-link notificacoes-navbar-button position-relative"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-            title="Notificações">
-
+<div class="dropdown"id="notificacoesDropdown">
+    <button type="button" class="btn nav-link notificacoes-navbar-button position-relative"
+            data-bs-toggle="dropdown" aria-expanded="false" title="Notificações">
         <i class="bi bi-bell fs-5"></i>
-
-        <span id="notificacaoCount"
-              class="notificacao-navbar-count
+        <span id="notificacaoCount" class="notificacao-navbar-count
                      @(Model.NumeroNaoLidas == 0
                          ? "d-none"
                          : "")">
             @Model.NumeroNaoLidas
         </span>
     </button>
-
-
-    <div class="dropdown-menu dropdown-menu-end
-                notificacoes-dropdown p-0">
-
+    <div class="dropdown-menu dropdown-menu-end notificacoes-dropdown p-0">
         <div class="notificacoes-dropdown-header">
             <strong>
                 Notificações
             </strong>
         </div>
-
-
         <div id="notificacoesDropdownLista">
 
             @if (Model.Notificacoes.Count == 0)
             {
-                <div id="notificacoesDropdownVazio"
-                     class="notificacoes-dropdown-vazio">
-
+                <div id="notificacoesDropdownVazio" class="notificacoes-dropdown-vazio">
                     Sem notificações.
                 </div>
             }
             else
             {
-                @foreach (var notificacao
-                    in Model.Notificacoes)
+                @foreach (var notificacao in Model.Notificacoes)
                 {
                     <div class="notificacao-dropdown-item
                                 @(!notificacao.Lida
@@ -52,45 +35,28 @@
                                     : "")"
                          data-notificacao-id="@notificacao.Id"
                          data-lida="@notificacao.Lida.ToString().ToLowerInvariant()">
-
                         <div class="fw-semibold">
                             @notificacao.Titulo
                         </div>
-
                         <div class="notificacao-dropdown-mensagem">
                             @notificacao.Mensagem
                         </div>
-
                         <small class="text-muted">
                             @notificacao.CriadoEm.ToString(
                                 "dd/MM/yyyy HH:mm")
                         </small>
-
                     </div>
                 }
             }
-
         </div>
-
-
         <div class="notificacoes-dropdown-footer">
-
-            <a href="/Notificacoes"
-               id="verTodasNotificacoes"
-               class="btn btn-sm btn-primary w-100">
-
+            <a href="/Notificacoes" id="verTodasNotificacoes" class="btn btn-sm btn-primary w-100">
                 Ver todas as notificações
             </a>
-
         </div>
-
     </div>
 </div>
 
-
-<form id="notificacoesAntiforgeryForm"
-      method="post"
-      class="d-none">
-
+<form id="notificacoesAntiforgeryForm" method="post" class="d-none">
     @Html.AntiForgeryToken()
 </form>

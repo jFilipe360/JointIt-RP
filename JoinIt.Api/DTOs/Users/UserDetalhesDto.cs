@@ -2,6 +2,7 @@
 
 namespace JoinIt.Api.DTOs.Users;
 
+// Dados detalhados de um utilizador, incluindo os seus eventos públicos
 public class UserDetalhesDto
 {
     public string Id { get; set; } = string.Empty;
